@@ -60,8 +60,8 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, totalIncome, totalExpens
         <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] px-1">Mis Cuentas</h3>
         <div className="flex gap-4 overflow-x-auto pb-4 -mx-1 px-1 scrollbar-hide">
           {accounts.map(acc => (
-            <div 
-              key={acc.id} 
+            <div
+              key={acc.id}
               className="min-w-[240px] bg-white p-7 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col justify-between group hover:shadow-lg hover:border-indigo-100 transition-all cursor-default"
               style={{ borderBottom: `6px solid ${acc.color || '#e2e8f0'}` }}
             >
@@ -69,7 +69,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, totalIncome, totalExpens
                 <span className="text-2xl w-14 h-14 flex items-center justify-center bg-slate-50 rounded-3xl group-hover:scale-110 transition-transform">
                   {acc.icon}
                 </span>
-                <span 
+                <span
                   className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full`}
                   style={{ backgroundColor: (acc.color || '#e2e8f0') + '15', color: acc.color }}
                 >
@@ -102,34 +102,48 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, totalIncome, totalExpens
         <div className="lg:col-span-2 bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100">
           <h3 className="text-xl font-black text-slate-800 mb-8 uppercase tracking-tight">Actividad Semanal</h3>
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={last7Days}>
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 700}} />
-                <YAxis hide />
-                <Tooltip 
-                  cursor={{fill: '#f1f5f9', radius: 12}}
-                  contentStyle={{borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.1)', padding: '16px 20px', fontWeight: 800}}
-                />
-                <Bar dataKey="amount" fill="var(--primary-color)" radius={[12, 12, 12, 12]} barSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
+            {last7Days.every(d => d.amount === 0) ? (
+              <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
+                <span className="text-4xl mb-2">📊</span>
+                <p className="text-sm font-bold">Sin actividad esta semana</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={last7Days}>
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
+                  <YAxis hide />
+                  <Tooltip
+                    cursor={{ fill: '#f1f5f9', radius: 12 }}
+                    contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.1)', padding: '16px 20px', fontWeight: 800 }}
+                  />
+                  <Bar dataKey="amount" fill="var(--primary-color)" radius={[12, 12, 12, 12]} barSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
         <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col">
           <h3 className="text-xl font-black text-slate-800 mb-8 uppercase tracking-tight">Distribución</h3>
           <div className="flex-1 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={categoryData} cx="50%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={8} dataKey="value" stroke="none">
-                  {categoryData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {categoryData.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
+                <span className="text-4xl mb-2">🍩</span>
+                <p className="text-sm font-bold">Sin gastos registrados</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={categoryData} cx="50%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={8} dataKey="value" stroke="none">
+                    {categoryData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
           <div className="mt-8 space-y-3">
-            {categoryData.slice(0, 4).map(c => (
+            {categoryData.length > 0 && categoryData.slice(0, 4).map(c => (
               <div key={c.name} className="flex items-center justify-between text-[11px] font-black bg-slate-50 p-4 rounded-2xl">
                 <div className="flex items-center gap-3">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: c.color }} />

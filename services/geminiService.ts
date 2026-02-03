@@ -1,7 +1,4 @@
-
 import { GoogleGenAI } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 export const analyzeFinances = async (data: {
   transactions: any[];
@@ -9,6 +6,15 @@ export const analyzeFinances = async (data: {
   debts: any[];
   currency: string;
 }) => {
+  const apiKey = import.meta.env.VITE_API_KEY || '';
+  
+  if (!apiKey) {
+    console.warn("Gemini API Key is missing");
+    return "Para utilizar el asistente de IA, por favor configura tu API Key de Gemini en el archivo .env como VITE_API_KEY.";
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+
   const prompt = `
     Como un experto asesor financiero senior, analiza los siguientes datos de la aplicación FINANZAS PRO y proporciona consejos accionables.
     
@@ -22,19 +28,19 @@ export const analyzeFinances = async (data: {
     1. Un resumen breve del estado de salud financiera actual (Excelente, Bueno, Regular, Crítico).
     2. Identificación de patrones de gasto inusuales o excesivos.
     3. 3 consejos específicos para reducir gastos basados en las categorías más altas.
-    4. Un comentario sobre la gestión de deudas.
-
+    4. Un comentario sobre la gestión de deuda.
+    
     Formato: Responde con un tono motivador pero profesional. Usa Markdown para el formato. Máximo 300 palabras.
   `;
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.0-flash',
       contents: prompt,
     });
     return response.text;
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
-    return "No pude realizar el análisis en este momento. Por favor, intenta más tarde.";
+    return "No pude realizar el análisis en este momento. Por favor, verifica tu conexión o tu API Key.";
   }
 };
