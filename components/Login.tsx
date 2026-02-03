@@ -1,38 +1,50 @@
-
 import React, { useState } from 'react';
+import { supabase } from '../services/supabaseClient';
 
 interface LoginProps {
     onLogin: () => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isRegistering, setIsRegistering] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setMessage('');
         setLoading(true);
 
-        // Simulación de delay de red y validación
-        setTimeout(() => {
-            // Por defecto aceptamos cualquier usuario con contraseña "1234" o "admin"
-            // En una app real, esto validaría contra una base de datos o hash guardado.
-            if (password === '1234' || password === 'admin') {
-                localStorage.setItem('finanzapro_user', username || 'Usuario');
-                onLogin();
+        try {
+            if (isRegistering) {
+                const { error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                });
+                if (error) throw error;
+                setMessage('¡Cuenta creada! Por favor revisa tu correo para confirmar (si es necesario) o inicia sesión.');
+                setIsRegistering(false);
             } else {
-                setError('Credenciales incorrectas. Intenta con "1234"');
-                setLoading(false);
+                const { error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
+                if (error) throw error;
+                onLogin();
             }
-        }, 800);
+        } catch (err: any) {
+            setError(err.message || 'Ocurrió un error');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-            {/* Background Decor */}
             <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[100px]" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px]" />
 
@@ -47,13 +59,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Usuario</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Email</label>
                         <input
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            type="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-700 transition-all"
-                            placeholder="Nombre de usuario"
+                            placeholder="ejemplo@correo.com"
                         />
                     </div>
 
@@ -61,6 +74,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Contraseña</label>
                         <input
                             type="password"
+                            required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-700 transition-all"
@@ -74,29 +88,32 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         </div>
                     )}
 
+                    {message && (
+                        <div className="text-emerald-500 text-xs font-bold text-center bg-emerald-50 py-2 rounded-xl">
+                            {message}
+                        </div>
+                    )}
+
                     <button
                         type="submit"
                         disabled={loading}
                         className={`w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 active:scale-[0.98] flex items-center justify-center gap-2 ${loading ? 'opacity-80 cursor-wait' : ''}`}
                     >
                         {loading ? (
-                            <>
-                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span>Entrando...</span>
-                            </>
+                            <span className="animate-pulse">Procesando...</span>
                         ) : (
-                            'Iniciar Sesión'
+                            isRegistering ? 'Crear Cuenta' : 'Iniciar Sesión'
                         )}
                     </button>
                 </form>
 
                 <div className="mt-8 text-center">
-                    <p className="text-xs text-slate-400 font-medium">
-                        Demo: Usa contraseña <span className="text-indigo-500 font-bold">1234</span>
-                    </p>
+                    <button
+                        onClick={() => setIsRegistering(!isRegistering)}
+                        className="text-xs text-slate-400 font-medium hover:text-indigo-600 transition-colors"
+                    >
+                        {isRegistering ? '¿Ya tienes cuenta? Inicia Sesión' : '¿No tienes cuenta? Regístrate'}
+                    </button>
                 </div>
             </div>
         </div>

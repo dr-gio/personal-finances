@@ -10,27 +10,28 @@ import ExpenseAnalysis from './components/ExpenseAnalysis';
 import Login from './components/Login';
 import { useFinance } from './hooks/useFinance';
 
+import { supabase } from './services/supabaseClient';
+
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return sessionStorage.getItem('finanzapro_auth') === 'true';
-  });
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const finance = useFinance();
+  const finance = useFinance(); // Aún usa localStorage, pero pronto lo cambiaremos
 
-  const handleLogin = () => {
-    sessionStorage.setItem('finanzapro_auth', 'true');
-    setIsAuthenticated(true);
-    // Actualizar nombre de usuario si se cambió en el login (opcional, aquí asumimos que settings manda)
-    const savedUser = localStorage.getItem('finanzapro_user');
-    if (savedUser && savedUser !== finance.settings.userName) {
-      finance.setSettings({ ...finance.settings, userName: savedUser });
-    }
-  };
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('finanzapro_auth');
-    setIsAuthenticated(false);
-  };
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Inyección dinámica de tema con 3 colores
   useEffect(() => {
@@ -209,15 +210,19 @@ const App: React.FC = () => {
     }
   };
 
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-indigo-600 font-bold">Cargando Finanzas Pro...</div>;
+  }
+
+  if (!session) {
+    return <Login onLogin={() => { }} />;
   }
 
   return (
     <Layout
       activeTab={activeTab}
       setActiveTab={setActiveTab}
-      userName={finance.settings.userName}
+      userName={session.user.email?.split('@')[0] || 'Usuario'}
       logo={finance.settings.logo}
     >
       {renderContent()}
