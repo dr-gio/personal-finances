@@ -52,11 +52,45 @@ export const useFinance = () => {
 
             // Load Accounts
             const { data: accData } = await supabase.from('fp_accounts').select('*');
-            if (accData && accData.length > 0) setAccounts(accData);
+            if (accData && accData.length > 0) {
+                setAccounts(accData);
+            } else {
+                // No accounts exist - create initial ones
+                console.log("Creating initial accounts for user...");
+                for (const acc of INITIAL_ACCOUNTS) {
+                    await supabase.from('fp_accounts').insert({
+                        user_id: user.id,
+                        name: acc.name,
+                        type: acc.type,
+                        balance: acc.balance,
+                        color: acc.color,
+                        icon: acc.icon
+                    });
+                }
+                // Reload accounts
+                const { data: newAccData } = await supabase.from('fp_accounts').select('*');
+                if (newAccData) setAccounts(newAccData);
+            }
 
             // Load Categories
             const { data: catData } = await supabase.from('fp_categories').select('*');
-            if (catData && catData.length > 0) setCategories(catData);
+            if (catData && catData.length > 0) {
+                setCategories(catData);
+            } else {
+                // No categories exist - create initial ones
+                console.log("Creating initial categories for user...");
+                for (const cat of INITIAL_CATEGORIES) {
+                    await supabase.from('fp_categories').insert({
+                        user_id: user.id,
+                        name: cat.name,
+                        color: cat.color,
+                        icon: cat.icon
+                    });
+                }
+                // Reload categories
+                const { data: newCatData } = await supabase.from('fp_categories').select('*');
+                if (newCatData) setCategories(newCatData);
+            }
 
             // Load Transactions
             const { data: txData } = await supabase.from('fp_transactions').select('*').order('date', { ascending: false });
