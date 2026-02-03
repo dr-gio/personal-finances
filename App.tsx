@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
@@ -8,11 +7,30 @@ import Settings from './components/Settings';
 import PaymentCalendar from './components/PaymentCalendar';
 import DebtManager from './components/DebtManager';
 import ExpenseAnalysis from './components/ExpenseAnalysis';
+import Login from './components/Login';
 import { useFinance } from './hooks/useFinance';
 
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem('finanzapro_auth') === 'true';
+  });
   const [activeTab, setActiveTab] = useState('dashboard');
   const finance = useFinance();
+
+  const handleLogin = () => {
+    sessionStorage.setItem('finanzapro_auth', 'true');
+    setIsAuthenticated(true);
+    // Actualizar nombre de usuario si se cambió en el login (opcional, aquí asumimos que settings manda)
+    const savedUser = localStorage.getItem('finanzapro_user');
+    if (savedUser && savedUser !== finance.settings.userName) {
+      finance.setSettings({ ...finance.settings, userName: savedUser });
+    }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('finanzapro_auth');
+    setIsAuthenticated(false);
+  };
 
   // Inyección dinámica de tema con 3 colores
   useEffect(() => {
@@ -20,11 +38,11 @@ const App: React.FC = () => {
     const c1 = finance.settings.primaryColor || '#4f46e5';
     const c2 = finance.settings.secondaryColor || '#10b981';
     const c3 = finance.settings.accentColor || '#f59e0b';
-    
+
     root.style.setProperty('--primary-color', c1);
     root.style.setProperty('--secondary-color', c2);
     root.style.setProperty('--accent-color', c3);
-    
+
     let styleTag = document.getElementById('dynamic-theme');
     if (!styleTag) {
       styleTag = document.createElement('style');
@@ -126,7 +144,7 @@ const App: React.FC = () => {
         );
       case 'analysis':
         return (
-          <ExpenseAnalysis 
+          <ExpenseAnalysis
             transactions={finance.transactions}
             categories={finance.categories}
             budgets={finance.budgets}
@@ -191,10 +209,14 @@ const App: React.FC = () => {
     }
   };
 
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
+
   return (
-    <Layout 
-      activeTab={activeTab} 
-      setActiveTab={setActiveTab} 
+    <Layout
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
       userName={finance.settings.userName}
       logo={finance.settings.logo}
     >
