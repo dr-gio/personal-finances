@@ -17,7 +17,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [viewingAttachments, setViewingAttachments] = useState<Attachment[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const initialForm = {
     amount: '',
     categoryId: categories?.[0]?.id || '',
@@ -39,7 +39,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const reader = new FileReader();
-      
+
       const promise = new Promise<Attachment>((resolve) => {
         reader.onload = () => {
           resolve({
@@ -49,7 +49,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
           });
         };
       });
-      
+
       reader.readAsDataURL(file);
       newAttachments.push(await promise);
     }
@@ -82,11 +82,11 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.amount || !formData.description || !formData.accountId) return;
-    
-    const finalCatId = formData.type === 'transfer' 
+
+    const finalCatId = formData.type === 'transfer'
       ? (categories.find(c => c.name === 'Transferencia')?.id || formData.categoryId || categories?.[0]?.id || '')
       : (formData.categoryId || categories?.[0]?.id || '');
 
@@ -101,15 +101,21 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
       attachments: formData.attachments.length > 0 ? formData.attachments : undefined
     };
 
-    if (editingTransaction) {
-      onUpdate(editingTransaction.id, payload);
-    } else {
-      onAdd(payload);
-    }
+    try {
+      if (editingTransaction) {
+        await onUpdate(editingTransaction.id, payload);
+        alert('✅ Movimiento actualizado correctamente');
+      } else {
+        await onAdd(payload);
+        alert('✅ Movimiento registrado correctamente');
+      }
 
-    setFormData(initialForm);
-    setEditingTransaction(null);
-    setIsModalOpen(false);
+      setFormData(initialForm);
+      setEditingTransaction(null);
+      setIsModalOpen(false);
+    } catch (err) {
+      // Hook handles logging, but we can catch here if needed.
+    }
   };
 
   return (
@@ -152,7 +158,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
                   const cat = categories.find(c => c.id === t.categoryId);
                   const acc = accounts.find(a => a.id === t.accountId);
                   const targetAcc = t.type === 'transfer' ? accounts.find(a => a.id === t.targetAccountId) : null;
-                  
+
                   return (
                     <tr key={t.id} className="hover:bg-slate-50 transition-colors group">
                       <td className="px-6 py-5 text-sm font-bold text-slate-400">{t.date}</td>
@@ -172,7 +178,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
                       </td>
                       <td className="px-6 py-5">
                         {t.attachments && t.attachments.length > 0 ? (
-                          <button 
+                          <button
                             onClick={() => setViewingAttachments(t.attachments!)}
                             className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-indigo-100 transition-colors"
                           >
@@ -182,11 +188,10 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
                           <span className="text-slate-300 text-[10px] uppercase font-bold tracking-widest">Sin soporte</span>
                         )}
                       </td>
-                      <td className={`px-6 py-5 text-right text-sm font-black ${
-                        t.type === 'income' ? 'text-emerald-500' : 
-                        t.type === 'expense' || t.type === 'debt_payment' ? 'text-rose-500' : 
-                        'text-indigo-500'
-                      }`}>
+                      <td className={`px-6 py-5 text-right text-sm font-black ${t.type === 'income' ? 'text-emerald-500' :
+                          t.type === 'expense' || t.type === 'debt_payment' ? 'text-rose-500' :
+                            'text-indigo-500'
+                        }`}>
                         {t.type === 'income' ? '+' : (t.type === 'expense' || t.type === 'debt_payment') ? '-' : '⇄'}{currency}{t.amount.toLocaleString()}
                       </td>
                       <td className="px-6 py-5 text-right">
@@ -255,17 +260,16 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
                     key={type}
                     type="button"
                     onClick={() => setFormData({ ...formData, type: type as TransactionType })}
-                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                      formData.type === type 
-                        ? 'bg-white text-indigo-600 shadow-sm' 
+                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${formData.type === type
+                        ? 'bg-white text-indigo-600 shadow-sm'
                         : 'text-slate-400'
-                    }`}
+                      }`}
                   >
                     {type === 'expense' ? 'Gasto' : type === 'income' ? 'Ingreso' : 'Transf.'}
                   </button>
                 ))}
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Monto</label>
@@ -352,16 +356,16 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
 
               <div className="space-y-3 pt-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Gestión de Soportes</label>
-                <div 
+                <div
                   onClick={() => fileInputRef.current?.click()}
                   className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:border-indigo-400 hover:bg-indigo-50/50 transition-all cursor-pointer group"
                 >
-                  <input 
-                    type="file" 
-                    multiple 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange} 
-                    className="hidden" 
+                  <input
+                    type="file"
+                    multiple
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
                     accept="image/*,.pdf"
                   />
                   <span className="text-3xl mb-2 block group-hover:scale-110 transition-transform">📎</span>
@@ -376,8 +380,8 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
                           <span className="text-lg flex-shrink-0">{file.type.startsWith('image/') ? '🖼️' : '📄'}</span>
                           <span className="text-[10px] font-bold text-slate-600 truncate">{file.name}</span>
                         </div>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => removeAttachment(idx)}
                           className="text-slate-300 hover:text-rose-500 transition-colors p-1"
                         >✕</button>

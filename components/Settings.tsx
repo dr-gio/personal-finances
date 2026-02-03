@@ -15,8 +15,8 @@ interface SettingsProps {
   onUpdateSettings: (s: AppSettings) => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ 
-  categories, accounts, settings, onAddCategory, onUpdateCategory, onDeleteCategory, onAddAccount, onUpdateAccount, onDeleteAccount, onUpdateSettings 
+const Settings: React.FC<SettingsProps> = ({
+  categories, accounts, settings, onAddCategory, onUpdateCategory, onDeleteCategory, onAddAccount, onUpdateAccount, onDeleteAccount, onUpdateSettings
 }) => {
   const [editingAcc, setEditingAcc] = useState<Account | null>(null);
   const [editingCat, setEditingCat] = useState<Category | null>(null);
@@ -58,8 +58,9 @@ const Settings: React.FC<SettingsProps> = ({
     setNewCat({ name: cat.name, icon: cat.icon, color: cat.color });
   };
 
-  const handleSaveSettings = () => {
-    onUpdateSettings(localSettings);
+  const handleSaveSettings = async () => {
+    await onUpdateSettings(localSettings);
+    alert('✅ Configuración guardada correctamente');
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,7 +100,7 @@ const Settings: React.FC<SettingsProps> = ({
         <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-2">
           <span>🎨</span> Personalización General
         </h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           <div className="space-y-6">
             <div className="space-y-2">
@@ -115,7 +116,7 @@ const Settings: React.FC<SettingsProps> = ({
                 className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 placeholder:text-slate-400"
               />
             </div>
-            
+
             <div className="grid grid-cols-1 gap-6">
               <div className="space-y-2">
                 <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest px-1">Moneda</label>
@@ -171,7 +172,7 @@ const Settings: React.FC<SettingsProps> = ({
           <div className="space-y-4">
             <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest px-1">Logotipo Personalizado</label>
             <div className="flex items-center gap-6">
-              <div 
+              <div
                 onClick={() => logoInputRef.current?.click()}
                 className="w-32 h-32 rounded-[2rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all overflow-hidden bg-slate-50 relative group"
               >
@@ -188,16 +189,16 @@ const Settings: React.FC<SettingsProps> = ({
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Subir Logo</span>
                   </>
                 )}
-                <input 
-                  type="file" 
-                  ref={logoInputRef} 
-                  onChange={handleLogoUpload} 
-                  className="hidden" 
-                  accept="image/*" 
+                <input
+                  type="file"
+                  ref={logoInputRef}
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                  accept="image/*"
                 />
               </div>
               {localSettings.logo && (
-                <button 
+                <button
                   onClick={removeLogo}
                   className="bg-rose-50 text-rose-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-colors"
                 >
@@ -214,7 +215,7 @@ const Settings: React.FC<SettingsProps> = ({
         <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-2 px-2">
           <span>🏦</span> Gestión de Cuentas
         </h3>
-        
+
         <form onSubmit={handleAddAcc} className={`${editingAcc ? 'bg-indigo-600' : 'bg-emerald-600'} p-8 rounded-[2.5rem] shadow-xl transition-all flex flex-wrap gap-6 items-end`}>
           <div className="flex-1 min-w-[200px] space-y-2">
             <label className="text-[11px] font-black text-white/80 uppercase tracking-widest px-1">{editingAcc ? 'Editando Cuenta' : 'Nombre Cuenta'}</label>
@@ -295,7 +296,7 @@ const Settings: React.FC<SettingsProps> = ({
         <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-2 px-2">
           <span>🏷️</span> Gestión de Categorías
         </h3>
-        
+
         <form onSubmit={handleAddCat} className={`${editingCat ? 'bg-indigo-700' : 'bg-indigo-600'} p-8 rounded-[2.5rem] shadow-xl flex flex-wrap gap-6 items-end transition-all`}>
           <div className="flex-1 min-w-[200px] space-y-2">
             <label className="text-[11px] font-black text-white/80 uppercase tracking-widest px-1">{editingCat ? 'Editando Categoría' : 'Nombre Categoría'}</label>
