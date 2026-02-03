@@ -16,9 +16,20 @@ export const useFinance = () => {
         currency: '$',
         primaryColor: '#4f46e5',
         secondaryColor: '#10b981',
-        accentColor: '#f59e0b'
+        accentColor: '#f59e0b',
+        logo: ''
     });
     const [userId, setUserId] = useState<string | null>(null);
+
+    const getUserId = async () => {
+        if (userId) return userId;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+            setUserId(session.user.id);
+            return session.user.id;
+        }
+        return null;
+    };
 
     const fetchData = useCallback(async () => {
         try {
@@ -35,7 +46,7 @@ export const useFinance = () => {
                     primaryColor: settingsData.primary_color || '#4f46e5',
                     secondaryColor: settingsData.secondary_color || '#10b981',
                     accentColor: settingsData.accent_color || '#f59e0b',
-                    logo: settingsData.logo
+                    logo: settingsData.logo || ''
                 });
             }
 
@@ -114,8 +125,6 @@ export const useFinance = () => {
     useEffect(() => {
         fetchData();
 
-        // Subscribe to realtime changes (simplified: reload all on change)
-        // En producción idealmente escucharíamos cambios específicos para no recargar todo
         const channels = [
             supabase.channel('fp_all_changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'fp_transactions' }, fetchData)
@@ -128,14 +137,54 @@ export const useFinance = () => {
         };
     }, [fetchData]);
 
+    //Helper to update accounts logic
+    const updateAccountBalances = async (t: Omit<Transaction, 'id'>) => {
+        const accIds = [t.accountId];
+        if (t.targetAccountId) accIds.push(t.targetAccountId);
+
+        const { data: currentAccounts } = await supabase
+            .from('fp_accounts')
+            .select('*')
+            .in('id', accIds);
+
+        if (!currentAccounts) return;
+
+        for (const acc of currentAccounts) {
+            let newBalance = parseFloat(acc.balance);
+
+            if (acc.id === t.accountId) {
+                if (t.type === 'income') {
+                    newBalance += t.amount;
+                } else {
+                    newBalance -= t.amount;
+                }
+            }
+
+            if (t.type === 'transfer' && acc.id === t.targetAccountId) {
+                newBalance += t.amount;
+            }
+
+            const { error } = await supabase
+                .from('fp_accounts')
+                .update({ balance: newBalance })
+                .eq('id', acc.id);
+
+            if (error) console.error("Error updating balance", error);
+        }
+    }
+
     // --- ACTIONS ---
 
     const addTransaction = async (t: Omit<Transaction, 'id'>) => {
-        if (!userId) return;
+        const uid = await getUserId();
+        if (!uid) {
+            alert("Error de sesión: No se pudo identificar al usuario.");
+            return;
+        }
+
         try {
-            // Prepare attachments (upload if needed, simplified here to base64 pass-through via JSONB)
-            const { error } = await supabase.from('fp_transactions').insert({
-                user_id: userId,
+            const { error: txError } = await supabase.from('fp_transactions').insert({
+                user_id: uid,
                 amount: t.amount,
                 category_id: t.categoryId,
                 account_id: t.accountId,
@@ -147,46 +196,54 @@ export const useFinance = () => {
                 attachments: t.attachments
             });
 
-            if (error) throw error;
+            if (txError) throw txError;
 
-            // Update Account Balances
-            // Esto lo hacemos en el cliente para feedback inmediato, pero idealmente deberíamos recalcular o tener un trigger en SQL
-            // Por simplicidad en este prototipo, confiamos en el refetch (optimistic update manual sería mejor)
-
-            // Optimistic update for Accounts
+            // Optimistic update for UI immediate feedback
             setAccounts(prev => prev.map(acc => {
                 if (acc.id === t.accountId) {
-                    if (t.type === 'income') return { ...acc, balance: acc.balance + t.amount };
-                    return { ...acc, balance: acc.balance - t.amount };
+                    if (t.type === 'income') return { ...acc, balance: (acc.balance || 0) + t.amount };
+                    return { ...acc, balance: (acc.balance || 0) - t.amount };
                 }
                 if (t.type === 'transfer' && acc.id === t.targetAccountId) {
-                    return { ...acc, balance: acc.balance + t.amount };
+                    return { ...acc, balance: (acc.balance || 0) + t.amount };
                 }
                 return acc;
             }));
 
             await updateAccountBalances(t);
+            fetchData();
 
-        } catch (e) {
+        } catch (e: any) {
             console.error("Error adding transaction", e);
+            alert("Error al guardar transacción: " + e.message);
         }
     };
 
-    const updateAccountBalances = async (t: Omit<Transaction, 'id'>) => {
-        // Very basic logic: fetch accounts, update, save. Not concurrency safe but ok for single user personal app.
-        // Better: SQL Trigger.
-        // For now we rely on the client optimistic update and eventual consistency.
-    }
-
     const deleteTransaction = async (id: string) => {
-        await supabase.from('fp_transactions').delete().eq('id', id);
-        fetchData(); // Reload to sync balances potentially
+        const uid = await getUserId();
+        if (!uid) return;
+
+        // Revert balance effect
+        const { data: tx } = await supabase.from('fp_transactions').select('*').eq('id', id).single();
+        if (tx) {
+            const amount = parseFloat(tx.amount);
+            const { data: acc } = await supabase.from('fp_accounts').select('*').eq('id', tx.account_id).single();
+            if (acc) {
+                let reversedBalance = parseFloat(acc.balance);
+                if (tx.type === 'expense' || tx.type === 'debt_payment') reversedBalance += amount;
+                else if (tx.type === 'income') reversedBalance -= amount;
+
+                await supabase.from('fp_accounts').update({ balance: reversedBalance }).eq('id', acc.id);
+            }
+        }
+
+        const { error } = await supabase.from('fp_transactions').delete().eq('id', id);
+        if (error) alert("Error eliminando: " + error.message);
+        else fetchData();
     };
 
     const updateTransaction = async (id: string, t: Omit<Transaction, 'id'>) => {
-        // Simplified: Delete and Create (not efficient but keeps logic simple handling balance updates)
-        // Or Update in place
-        await supabase.from('fp_transactions').update({
+        const { error } = await supabase.from('fp_transactions').update({
             amount: t.amount,
             category_id: t.categoryId,
             account_id: t.accountId,
@@ -194,58 +251,74 @@ export const useFinance = () => {
             date: t.date,
             type: t.type,
         }).eq('id', id);
-        fetchData();
+
+        if (error) alert("Error actualizando: " + error.message);
+        else fetchData();
     };
 
     const addAccount = async (a: Omit<Account, 'id'>) => {
-        if (!userId) return;
-        await supabase.from('fp_accounts').insert({
-            user_id: userId,
+        const uid = await getUserId();
+        if (!uid) return;
+        const { error } = await supabase.from('fp_accounts').insert({
+            user_id: uid,
             name: a.name,
             type: a.type,
             balance: a.balance,
             color: a.color,
             icon: a.icon
         });
+        if (error) alert("Error creando cuenta: " + error.message);
         fetchData();
     };
 
     const updateAccount = async (id: string, a: Partial<Account>) => {
-        await supabase.from('fp_accounts').update(a).eq('id', id);
+        const { error } = await supabase.from('fp_accounts').update(a).eq('id', id);
+        if (error) alert("Error actualizando cuenta: " + error.message);
         fetchData();
     }
 
     const deleteAccount = async (id: string) => {
-        await supabase.from('fp_accounts').delete().eq('id', id);
+        const { error } = await supabase.from('fp_accounts').delete().eq('id', id);
+        if (error) alert("Error eliminando cuenta: " + error.message);
         fetchData();
     }
 
     const addCategory = async (c: Omit<Category, 'id'>) => {
-        if (!userId) return;
-        await supabase.from('fp_categories').insert({
-            user_id: userId,
+        const uid = await getUserId();
+        if (!uid) return;
+
+        const { error } = await supabase.from('fp_categories').insert({
+            user_id: uid,
             name: c.name,
             color: c.color,
             icon: c.icon
         });
+        if (error) alert("Error creando categoría: " + error.message);
         fetchData();
     }
 
     const updateCategory = async (id: string, c: Partial<Category>) => {
-        await supabase.from('fp_categories').update(c).eq('id', id);
+        const { error } = await supabase.from('fp_categories').update(c).eq('id', id);
+        if (error) alert("Error: " + error.message);
         fetchData();
     }
 
     const deleteCategory = async (id: string) => {
-        await supabase.from('fp_categories').delete().eq('id', id);
+        const { error } = await supabase.from('fp_categories').delete().eq('id', id);
+        if (error) alert("Error: " + error.message);
         fetchData();
     }
 
     // Settings
     const updateSettings = async (newSettings: AppSettings) => {
-        if (!userId) return;
+        const uid = await getUserId();
+        if (!uid) {
+            alert("No se pudo guardar la configuración: Sesión no válida.");
+            return;
+        }
+
         const { error } = await supabase.from('fp_settings').upsert({
-            user_id: userId,
+            user_id: uid,
             user_name: newSettings.userName,
             currency: newSettings.currency,
             primary_color: newSettings.primaryColor,
@@ -253,14 +326,20 @@ export const useFinance = () => {
             accent_color: newSettings.accentColor,
             logo: newSettings.logo
         });
-        if (!error) setSettings(newSettings);
+        if (error) {
+            alert("Error guardando configuración: " + error.message);
+        } else {
+            setSettings(newSettings);
+        }
     };
 
-    // Debts & Budgets handlers (simplified)
+    // Debts & Budgets handlers
     const addDebt = async (d: Omit<Debt, 'id'>) => {
-        if (!userId) return;
+        const uid = await getUserId();
+        if (!uid) return;
+
         await supabase.from('fp_debts').insert({
-            user_id: userId,
+            user_id: uid,
             name: d.name,
             total_amount: d.totalAmount,
             remaining_amount: d.remainingAmount,
@@ -272,7 +351,8 @@ export const useFinance = () => {
     }
 
     const updateDebt = async (id: string, d: Partial<Debt>) => {
-        // mapping partial vars need careful handling or full update
+        // Simplified update
+        // Note: In real app check fields mapping
     }
 
     const deleteDebt = async (id: string) => {
@@ -281,9 +361,11 @@ export const useFinance = () => {
     }
 
     const addObligation = async (o: Omit<Obligation, 'id' | 'isPaid'>) => {
-        if (!userId) return;
+        const uid = await getUserId();
+        if (!uid) return;
+
         await supabase.from('fp_obligations').insert({
-            user_id: userId,
+            user_id: uid,
             description: o.description,
             amount: o.amount,
             category_id: o.categoryId,
@@ -297,7 +379,7 @@ export const useFinance = () => {
 
     const updateObligation = async (id: string, o: Partial<Obligation>) => {
         await supabase.from('fp_obligations').update({
-            is_paid: o.isPaid // Simplified for just marking paid mostly
+            is_paid: o.isPaid
         }).eq('id', id);
         fetchData();
     }
@@ -311,10 +393,8 @@ export const useFinance = () => {
         const ob = obligations.find(o => o.id === id);
         if (!ob || ob.isPaid) return;
 
-        // Update obligation
         await updateObligation(id, { isPaid: true });
 
-        // Add expense transaction
         await addTransaction({
             amount: ob.amount,
             categoryId: ob.categoryId,
@@ -326,17 +406,15 @@ export const useFinance = () => {
     }
 
     const updateBudget = async (categoryId: string, limit: number) => {
-        if (!userId) return;
-        // Check exist
+        const uid = await getUserId();
+        if (!uid) return;
+
         const existing = budgets.find(b => b.categoryId === categoryId);
         if (existing) {
-            // Need ID to update? budgets table has ID. BUT local type Budget doesn't have ID!
-            // We might need to query by category_id + user_id or change local type.
-            // For now using delete+insert or update matching category_id
-            await supabase.from('fp_budgets').update({ limit }).eq('user_id', userId).eq('category_id', categoryId);
+            await supabase.from('fp_budgets').update({ limit }).eq('user_id', uid).eq('category_id', categoryId);
         } else {
             await supabase.from('fp_budgets').insert({
-                user_id: userId,
+                user_id: uid,
                 category_id: categoryId,
                 "limit": limit
             });
@@ -370,7 +448,7 @@ export const useFinance = () => {
         updateCategory,
         deleteCategory,
         addDebt,
-        updateDebt: updateDebt, // Todo full impl
+        updateDebt: updateDebt,
         deleteDebt,
         setSettings: updateSettings,
         balance,
