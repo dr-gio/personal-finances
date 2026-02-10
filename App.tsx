@@ -129,6 +129,8 @@ const App: React.FC = () => {
             categories={finance.categories}
             accounts={finance.accounts}
             currency={finance.settings.currency}
+            obligations={finance.obligations}
+            onPayObligation={finance.markAsPaid}
           />
         );
       case 'transactions':
