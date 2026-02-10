@@ -46,7 +46,8 @@ export const useFinance = () => {
                     primaryColor: settingsData.primary_color || '#4f46e5',
                     secondaryColor: settingsData.secondary_color || '#10b981',
                     accentColor: settingsData.accent_color || '#f59e0b',
-                    logo: settingsData.logo || ''
+                    logo: settingsData.logo || '',
+                    geminiApiKey: settingsData.gemini_api_key || ''
                 });
             }
 
@@ -294,7 +295,8 @@ export const useFinance = () => {
             primary_color: newSettings.primaryColor,
             secondary_color: newSettings.secondaryColor,
             accent_color: newSettings.accentColor,
-            logo: newSettings.logo
+            logo: newSettings.logo,
+            gemini_api_key: newSettings.geminiApiKey
         });
         if (error) {
             alert("Error guardando configuración: " + error.message);
