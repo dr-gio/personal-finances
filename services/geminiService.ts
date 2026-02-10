@@ -17,8 +17,8 @@ export const analyzeFinances = async (data: {
 
   const genAI = new GoogleGenerativeAI(apiKey);
 
-  // Usamos el modelo flash 2.0 que es rápido y potente
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  // Usamos el modelo 1.5 flash que es el más compatible y estable globalmente
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   const prompt = `
     Actúa como un asesor financiero experto y motivador para la app FINANZAS PRO.
@@ -51,10 +51,16 @@ export const analyzeFinances = async (data: {
   } catch (error: any) {
     console.error("Error en el análisis de Gemini:", error);
 
+    let userMessage = "No pude conectar con el asistente de IA. ";
+
     if (error.message?.includes("API key not valid")) {
-      return "⚠️ La API Key que ingresaste en Ajustes no es válida. Por favor, genera una nueva en Google AI Studio.";
+      userMessage = "⚠️ La API Key no es válida. Por favor, verifica en Google AI Studio.";
+    } else if (error.message?.includes("Safety")) {
+      userMessage = "⚠️ El análisis fue bloqueado por filtros de seguridad de Google.";
+    } else {
+      userMessage += "Detalle: " + (error.message || "Error desconocido");
     }
 
-    return "No pude conectar con el asistente de IA en este momento. Por favor, verifica tu conexión a internet o que tu API Key sea correcta.";
+    return userMessage;
   }
 };
