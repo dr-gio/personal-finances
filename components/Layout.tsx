@@ -7,15 +7,16 @@ interface LayoutProps {
   setActiveTab: (tab: string) => void;
   userName: string;
   logo?: string;
+  hasAlerts?: boolean;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, userName, logo }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, userName, logo, hasAlerts }) => {
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'dashboard', label: 'Dashboard', icon: '📊', showAlert: hasAlerts },
     { id: 'transactions', label: 'Movimientos', icon: '💸' },
     { id: 'analysis', label: 'Análisis', icon: '📈' },
     { id: 'debts', label: 'Deudas', icon: '📉' },
-    { id: 'calendar', label: 'Calendario', icon: '🗓️' },
+    { id: 'calendar', label: 'Calendario', icon: '🗓️', showAlert: hasAlerts },
     { id: 'budgets', label: 'Presupuestos', icon: '🎯' },
     { id: 'settings', label: 'Ajustes', icon: '⚙️' },
   ];
@@ -64,12 +65,17 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-semibold whitespace-nowrap ${activeTab === tab.id
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-semibold whitespace-nowrap relative ${activeTab === tab.id
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
             >
-              <span className="text-lg">{tab.icon}</span>
+              <span className="text-lg relative">
+                {tab.icon}
+                {(tab as any).showAlert && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 border-2 border-white rounded-full animate-bounce"></span>
+                )}
+              </span>
               {tab.label}
             </button>
           ))}

@@ -12,6 +12,7 @@ import VoiceAssistant from './components/VoiceAssistant';
 import { useFinance } from './hooks/useFinance';
 
 import { supabase } from './services/supabaseClient';
+import { getUpcomingObligations } from './utils/dateHelpers';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -222,12 +223,16 @@ const App: React.FC = () => {
     return <Login onLogin={() => { }} />;
   }
 
+  const upcomingPayments = getUpcomingObligations(finance.obligations, 3); // Alertas para los próximos 3 días
+  const hasAlerts = upcomingPayments.length > 0;
+
   return (
     <Layout
       activeTab={activeTab}
       setActiveTab={setActiveTab}
       userName={session.user.email?.split('@')[0] || 'Usuario'}
       logo={finance.settings.logo}
+      hasAlerts={hasAlerts}
     >
       {renderContent()}
       <VoiceAssistant

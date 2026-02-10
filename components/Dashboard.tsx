@@ -17,7 +17,10 @@ interface DashboardProps {
   onPayObligation?: (id: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ balance, totalIncome, totalExpense, totalDebt, transactions, categories, accounts, currency }) => {
+const Dashboard: React.FC<DashboardProps> = ({ balance, totalIncome, totalExpense, totalDebt, transactions, categories, accounts, currency, obligations, onPayObligation }) => {
+  const upcomingPayments = getUpcomingObligations(obligations, 7); // Próximos 7 días
+  const today = getTodayString();
+
   const categoryData = categories.map(cat => {
     const total = transactions
       .filter(t => t.categoryId === cat.id && (t.type === 'expense' || t.type === 'debt_payment'))
@@ -57,6 +60,49 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, totalIncome, totalExpens
           </div>
         </div>
       </header>
+      {/* Alertas de Pagos Pendientes */}
+      {upcomingPayments.length > 0 && (
+        <section className="space-y-4">
+          <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] px-1">Alertas de Pago</h3>
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+            {upcomingPayments.map(pay => {
+              const diff = daysBetween(today, pay.dueDate);
+              const isToday = diff === 0;
+              const isOverdue = diff < 0;
+
+              return (
+                <div
+                  key={pay.id}
+                  className={`min-w-[300px] p-6 rounded-[2rem] border-2 flex items-center justify-between shadow-lg transition-all hover:scale-[1.02] ${isOverdue ? 'bg-rose-50 border-rose-200' :
+                    isToday ? 'bg-amber-50 border-amber-200' : 'bg-indigo-50 border-indigo-100'
+                    }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${isOverdue ? 'bg-rose-500 text-white' :
+                      isToday ? 'bg-amber-500 text-white' : 'bg-indigo-600 text-white'
+                      }`}>
+                      {isOverdue ? '⚠️' : isToday ? '🔔' : '📅'}
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                        {isOverdue ? 'Vencido' : isToday ? 'Vence Hoy' : `En ${diff} días`}
+                      </p>
+                      <p className="font-black text-slate-900 leading-tight">{pay.description}</p>
+                      <p className="font-bold text-slate-600 text-sm">{currency}{pay.amount.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  {onPayObligation && !pay.isPaid && (
+                    <button
+                      onClick={() => onPayObligation(pay.id)}
+                      className="ml-4 px-4 py-2 bg-white text-[10px] font-black uppercase tracking-widest text-slate-900 rounded-xl border border-slate-200 hover:bg-slate-900 hover:text-white transition-colors shadow-sm"
+                    > Pagar Ahora </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Cuentas Section */}
       <section className="space-y-4">
