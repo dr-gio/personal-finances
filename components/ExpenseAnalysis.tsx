@@ -276,12 +276,13 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
             </div>
 
             <form onSubmit={handleAskAi} className="space-y-4">
-              <div className="bg-white/5 border border-white/10 p-4 rounded-3xl focus-within:border-indigo-500 transition-all">
+              <div className="bg-[#0f172a] border-2 border-slate-700 p-5 rounded-[2rem] focus-within:border-indigo-400 transition-all shadow-xl">
                 <textarea
                   value={customQuery}
                   onChange={(e) => setCustomQuery(e.target.value)}
                   placeholder="¿En qué puedo mejorar mis gastos?"
-                  className="w-full bg-transparent border-none outline-none text-white text-sm font-bold resize-none h-24 placeholder:text-slate-600"
+                  className="w-full bg-transparent border-none outline-none text-white text-lg font-bold resize-none h-32 placeholder:text-slate-500"
+                  style={{ color: 'white', opacity: 1 }}
                 />
               </div>
               <button
