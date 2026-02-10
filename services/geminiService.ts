@@ -5,12 +5,13 @@ export const analyzeFinances = async (data: {
   budgets: any[];
   debts: any[];
   currency: string;
+  apiKey?: string;
 }) => {
-  const apiKey = import.meta.env.VITE_API_KEY || '';
-  
+  const apiKey = data.apiKey || import.meta.env.VITE_API_KEY || '';
+
   if (!apiKey) {
     console.warn("Gemini API Key is missing");
-    return "Para utilizar el asistente de IA, por favor configura tu API Key de Gemini en el archivo .env como VITE_API_KEY.";
+    return "Para utilizar el asistente de IA, por favor configura tu API Key de Gemini en la sección de Ajustes.";
   }
 
   const ai = new GoogleGenAI({ apiKey });

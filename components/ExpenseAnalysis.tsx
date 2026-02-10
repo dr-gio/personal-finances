@@ -13,9 +13,10 @@ interface ExpenseAnalysisProps {
   budgets: Budget[];
   debts: Debt[];
   currency: string;
+  geminiApiKey?: string;
 }
 
-const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categories, budgets, debts, currency }) => {
+const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categories, budgets, debts, currency, geminiApiKey }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -118,7 +119,8 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
         transactions,
         budgets,
         debts,
-        currency
+        currency,
+        apiKey: geminiApiKey
       });
       setAiInsight(insight || "No hay suficientes datos para un análisis profundo.");
     } finally {

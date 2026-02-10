@@ -118,19 +118,35 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
 
             <div className="grid grid-cols-1 gap-6">
-              <div className="space-y-2">
-                <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest px-1">Moneda</label>
-                <input
-                  type="text"
-                  value={localSettings.currency}
-                  onChange={(e) => {
-                    const updated = { ...localSettings, currency: e.target.value };
-                    setLocalSettings(updated);
-                  }}
-                  onBlur={handleSaveSettings}
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900"
-                  placeholder="$"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest px-1">Moneda</label>
+                  <input
+                    type="text"
+                    value={localSettings.currency}
+                    onChange={(e) => {
+                      const updated = { ...localSettings, currency: e.target.value };
+                      setLocalSettings(updated);
+                    }}
+                    onBlur={handleSaveSettings}
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900"
+                    placeholder="$"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest px-1">Clave AI (Gemini)</label>
+                  <input
+                    type="password"
+                    value={localSettings.geminiApiKey || ''}
+                    onChange={(e) => {
+                      const updated = { ...localSettings, geminiApiKey: e.target.value };
+                      setLocalSettings(updated);
+                    }}
+                    onBlur={handleSaveSettings}
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900"
+                    placeholder="Pega tu API Key"
+                  />
+                </div>
               </div>
 
               {/* Selector de 3 Colores HEX */}

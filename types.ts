@@ -73,6 +73,7 @@ export interface AppSettings {
   secondaryColor: string;
   accentColor: string;
   logo?: string; // Base64 string for custom logo
+  geminiApiKey?: string;
 }
 
 export const INITIAL_CATEGORIES: Category[] = [

@@ -153,6 +153,7 @@ const App: React.FC = () => {
             budgets={finance.budgets}
             debts={finance.debts}
             currency={finance.settings.currency}
+            geminiApiKey={finance.settings.geminiApiKey}
           />
         );
       case 'debts':
