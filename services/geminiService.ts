@@ -20,15 +20,34 @@ export const analyzeFinances = async (data: {
   // Usamos el modelo 2.0 flash que es el confirmado disponible para esta cuenta
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
+  // Limpiar los datos para no enviar imágenes base64 (que causan el error de exceso de tokens)
+  const cleanTransactions = data.transactions.slice(0, 30).map(t => ({
+    fecha: t.date,
+    monto: t.amount,
+    descripcion: t.description,
+    tipo: t.type
+  }));
+
+  const cleanBudgets = data.budgets.map(b => ({
+    categoria: b.categoryId,
+    limite: b.limit
+  }));
+
+  const cleanDebts = data.debts.map(d => ({
+    nombre: d.name,
+    monto_restante: d.remainingAmount,
+    tasa: d.interestRate
+  }));
+
   const prompt = `
     Actúa como un asesor financiero experto y motivador para la app FINANZAS PRO.
     Analiza los datos del usuario y proporciona consejos prácticos en español.
     
     DATOS PROPORCIONADOS:
     - Moneda: ${data.currency}
-    - Movimientos (últimos 30): ${JSON.stringify(data.transactions.slice(0, 30))}
-    - Presupuestos: ${JSON.stringify(data.budgets)}
-    - Deudas: ${JSON.stringify(data.debts)}
+    - Movimientos recientes: ${JSON.stringify(cleanTransactions)}
+    - Presupuestos: ${JSON.stringify(cleanBudgets)}
+    - Deudas: ${JSON.stringify(cleanDebts)}
 
     POR FAVOR INCLUYE:
     1. Un diagnóstico rápido de salud financiera.
