@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
-import { Transaction, Category, Account } from '../types';
+import { Transaction, Category, Account, Obligation } from '../types';
+import { getUpcomingObligations, daysBetween, getTodayString } from '../utils/dateHelpers';
 
 interface DashboardProps {
   balance: number;
@@ -12,6 +13,8 @@ interface DashboardProps {
   categories: Category[];
   accounts: Account[];
   currency: string;
+  obligations: Obligation[];
+  onPayObligation?: (id: string) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ balance, totalIncome, totalExpense, totalDebt, transactions, categories, accounts, currency }) => {

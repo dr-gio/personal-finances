@@ -171,44 +171,7 @@ export const useFinance = () => {
         };
     }, [fetchData]);
 
-    //Helper to update accounts logic
-    const updateAccountBalances = async (t: Omit<Transaction, 'id'>) => {
-        const accIds = [t.accountId];
-        if (t.targetAccountId) accIds.push(t.targetAccountId);
-
-        const { data: currentAccounts } = await supabase
-            .from('fp_accounts')
-            .select('*')
-            .in('id', accIds);
-
-        if (!currentAccounts) return;
-
-        for (const acc of currentAccounts) {
-            let newBalance = parseFloat(acc.balance);
-
-            if (acc.id === t.accountId) {
-                if (t.type === 'income') {
-                    newBalance += t.amount;
-                } else {
-                    newBalance -= t.amount;
-                }
-            }
-
-            if (t.type === 'transfer' && acc.id === t.targetAccountId) {
-                newBalance += t.amount;
-            }
-
-            const { error } = await supabase
-                .from('fp_accounts')
-                .update({ balance: newBalance })
-                .eq('id', acc.id);
-
-            if (error) console.error("Error updating balance", error);
-        }
-    }
-
     // --- ACTIONS ---
-
     const addTransaction = async (t: Omit<Transaction, 'id'>) => {
         const uid = await getUserId();
         if (!uid) {
@@ -232,19 +195,7 @@ export const useFinance = () => {
 
             if (txError) throw txError;
 
-            // Optimistic update for UI immediate feedback
-            setAccounts(prev => prev.map(acc => {
-                if (acc.id === t.accountId) {
-                    if (t.type === 'income') return { ...acc, balance: (acc.balance || 0) + t.amount };
-                    return { ...acc, balance: (acc.balance || 0) - t.amount };
-                }
-                if (t.type === 'transfer' && acc.id === t.targetAccountId) {
-                    return { ...acc, balance: (acc.balance || 0) + t.amount };
-                }
-                return acc;
-            }));
-
-            await updateAccountBalances(t);
+            // Note: Balances are now updated automatically via Supabase Trigger
             fetchData();
 
         } catch (e: any) {
@@ -254,23 +205,6 @@ export const useFinance = () => {
     };
 
     const deleteTransaction = async (id: string) => {
-        const uid = await getUserId();
-        if (!uid) return;
-
-        // Revert balance effect
-        const { data: tx } = await supabase.from('fp_transactions').select('*').eq('id', id).single();
-        if (tx) {
-            const amount = parseFloat(tx.amount);
-            const { data: acc } = await supabase.from('fp_accounts').select('*').eq('id', tx.account_id).single();
-            if (acc) {
-                let reversedBalance = parseFloat(acc.balance);
-                if (tx.type === 'expense' || tx.type === 'debt_payment') reversedBalance += amount;
-                else if (tx.type === 'income') reversedBalance -= amount;
-
-                await supabase.from('fp_accounts').update({ balance: reversedBalance }).eq('id', acc.id);
-            }
-        }
-
         const { error } = await supabase.from('fp_transactions').delete().eq('id', id);
         if (error) alert("Error eliminando: " + error.message);
         else fetchData();
@@ -281,9 +215,11 @@ export const useFinance = () => {
             amount: t.amount,
             category_id: t.categoryId,
             account_id: t.accountId,
+            target_account_id: t.targetAccountId,
             description: t.description,
             date: t.date,
             type: t.type,
+            attachments: t.attachments
         }).eq('id', id);
 
         if (error) alert("Error actualizando: " + error.message);
