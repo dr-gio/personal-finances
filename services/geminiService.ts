@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const analyzeFinances = async (data: {
   transactions: any[];
@@ -7,41 +7,54 @@ export const analyzeFinances = async (data: {
   currency: string;
   apiKey?: string;
 }) => {
-  const apiKey = data.apiKey || import.meta.env.VITE_API_KEY || '';
+  // Priorizar la API Key pasada por argumento (desde settings en Supabase)
+  const apiKey = data.apiKey || "";
 
   if (!apiKey) {
     console.warn("Gemini API Key is missing");
     return "Para utilizar el asistente de IA, por favor configura tu API Key de Gemini en la sección de Ajustes.";
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  const genAI = new GoogleGenerativeAI(apiKey);
+
+  // Usamos el modelo flash 2.0 que es rápido y potente
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const prompt = `
-    Como un experto asesor financiero senior, analiza los siguientes datos de la aplicación FINANZAS PRO y proporciona consejos accionables.
+    Actúa como un asesor financiero experto y motivador para la app FINANZAS PRO.
+    Analiza los datos del usuario y proporciona consejos prácticos en español.
     
-    DATOS:
-    - Movimientos recientes: ${JSON.stringify(data.transactions.slice(0, 30))}
+    DATOS PROPORCIONADOS:
+    - Moneda: ${data.currency}
+    - Movimientos (últimos 30): ${JSON.stringify(data.transactions.slice(0, 30))}
     - Presupuestos: ${JSON.stringify(data.budgets)}
     - Deudas: ${JSON.stringify(data.debts)}
-    - Moneda: ${data.currency}
 
-    PROPORCIONA:
-    1. Un resumen breve del estado de salud financiera actual (Excelente, Bueno, Regular, Crítico).
-    2. Identificación de patrones de gasto inusuales o excesivos.
-    3. 3 consejos específicos para reducir gastos basados en las categorías más altas.
-    4. Un comentario sobre la gestión de deuda.
+    POR FAVOR INCLUYE:
+    1. Un diagnóstico rápido de salud financiera.
+    2. Identificación de fugas de dinero o gastos excesivos.
+    3. 3 recomendaciones de ahorro específicas.
+    4. Un mensaje de motivación para mejorar el control financiero.
     
-    Formato: Responde con un tono motivador pero profesional. Usa Markdown para el formato. Máximo 300 palabras.
+    REGLAS:
+    - Usa un tono profesional pero cercano.
+    - Formato Markdown (negritas, listas, etc).
+    - Máximo 250 palabras.
+    - Responde siempre en ESPAÑOL.
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: prompt,
-    });
-    return response.text;
-  } catch (error) {
-    console.error("Gemini Analysis Error:", error);
-    return "No pude realizar el análisis en este momento. Por favor, verifica tu conexión o tu API Key.";
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    return text;
+  } catch (error: any) {
+    console.error("Error en el análisis de Gemini:", error);
+
+    if (error.message?.includes("API key not valid")) {
+      return "⚠️ La API Key que ingresaste en Ajustes no es válida. Por favor, genera una nueva en Google AI Studio.";
+    }
+
+    return "No pude conectar con el asistente de IA en este momento. Por favor, verifica tu conexión a internet o que tu API Key sea correcta.";
   }
 };
