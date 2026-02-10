@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area, CartesianGrid
@@ -23,6 +23,36 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
   const [customQuery, setCustomQuery] = useState('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(new Date().getMonth());
+  const [isListening, setIsListening] = useState(false);
+
+  // Speech Recognition Setup
+  // @ts-ignore
+  const recognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    ? // @ts-ignore
+    new (window.SpeechRecognition || window.webkitSpeechRecognition)()
+    : null;
+
+  useEffect(() => {
+    if (!recognition) return;
+    recognition.lang = 'es-ES';
+    recognition.continuous = false;
+    recognition.onresult = (event: any) => {
+      const text = event.results[0][0].transcript;
+      setCustomQuery(text);
+      setIsListening(false);
+    };
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+  }, [recognition]);
+
+  const startListening = () => {
+    if (recognition) {
+      setIsListening(true);
+      recognition.start();
+    } else {
+      alert("Reconocimiento de voz no soportado en este navegador.");
+    }
+  };
 
   // Filtrar transacciones por periodo
   const filteredTransactions = useMemo(() => {
@@ -126,8 +156,8 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
     }
   };
 
-  const handleAskAi = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAskAi = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!customQuery.trim() || !geminiApiKey) return;
 
     setIsAnalyzing(true);
@@ -264,73 +294,85 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
       </div>
 
       {/* Asesor Financiero IA */}
-      <section className="bg-slate-900 p-10 rounded-[4rem] shadow-2xl relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row gap-10">
-          <div className="w-full md:w-1/3 flex flex-col gap-6">
+      <section className="bg-slate-900 p-8 md:p-12 rounded-[4rem] shadow-2xl relative overflow-hidden">
+        <div className="relative z-10 flex flex-col md:flex-row gap-12">
+          <div className="w-full md:w-2/5 flex flex-col gap-8">
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">🤖</span>
-                <h3 className="text-3xl font-black text-white tracking-tight">Tu Asesor Personal</h3>
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-indigo-600 rounded-3xl flex items-center justify-center text-3xl shadow-lg shadow-indigo-500/20">🤖</div>
+                <h3 className="text-3xl font-black text-white tracking-tight">Tu Asesor Personal 440</h3>
               </div>
-              <p className="text-slate-400 font-medium text-sm">Tu IA conoce todos tus movimientos, deudas y presupuestos. Pregúntale cualquier cosa.</p>
+              <p className="text-slate-400 font-medium text-sm leading-relaxed">Tu IA conoce todos tus movimientos, deudas y presupuestos. Pregúntale o habla con ella.</p>
             </div>
 
-            <form onSubmit={handleAskAi} className="space-y-4">
-              <div className="bg-[#0f172a] border-2 border-slate-700 p-5 rounded-[2rem] focus-within:border-indigo-400 transition-all shadow-xl">
+            <div className="space-y-4">
+              <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border-4 border-indigo-500/30">
                 <textarea
                   value={customQuery}
                   onChange={(e) => setCustomQuery(e.target.value)}
-                  placeholder="¿En qué puedo mejorar mis gastos?"
-                  className="w-full bg-transparent border-none outline-none text-white text-lg font-bold resize-none h-32 placeholder:text-slate-500"
-                  style={{ color: 'white', opacity: 1 }}
+                  placeholder="Escribe tu duda aquí..."
+                  className="w-full bg-transparent border-none outline-none text-slate-900 text-lg font-bold resize-none h-32 placeholder:text-slate-300"
                 />
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={startListening}
+                    className={`p-4 rounded-2xl transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                  >
+                    {isListening ? '🛑' : '🎙️'}
+                  </button>
+                </div>
               </div>
+
               <button
-                type="submit"
+                onClick={() => handleAskAi()}
                 disabled={isAnalyzing || !customQuery.trim()}
-                className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-500/20 disabled:opacity-50"
+                className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-500/30 disabled:opacity-50 active:scale-95"
               >
                 💬 Consultar al Asesor
               </button>
-            </form>
+            </div>
 
             <button
               onClick={handleGenerateAiInsight}
-              className="text-indigo-400 font-black uppercase tracking-widest text-[10px] py-4 border border-indigo-500/30 rounded-2xl hover:bg-indigo-500/10 transition-all"
+              className="text-indigo-400 font-black uppercase tracking-widest text-[10px] py-4 border-2 border-indigo-500/20 rounded-2xl hover:bg-indigo-500/10 transition-all"
             >
               🚀 Auditoría Financiera Completa
             </button>
           </div>
 
-          <div className="flex-1 min-h-[400px]">
+          <div className="flex-1">
             {isAnalyzing ? (
-              <div className="h-full bg-white/5 p-8 rounded-[3rem] border border-white/10 flex flex-col items-center justify-center gap-4 py-12">
-                <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-indigo-400 font-black uppercase tracking-widest text-xs animate-pulse">Procesando consulta financiera...</p>
+              <div className="h-full bg-white/5 p-8 rounded-[3.5rem] border border-white/10 flex flex-col items-center justify-center gap-6 py-12">
+                <div className="w-20 h-20 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-indigo-400 font-black uppercase tracking-widest text-[10px] animate-pulse">Procesando consulta financiera...</p>
               </div>
             ) : aiInsight ? (
-              <div className="h-full bg-white p-10 rounded-[3rem] border border-indigo-500/30 text-slate-800 animate-in fade-in slide-in-from-right-4 duration-500">
-                <div className="flex justify-between items-center mb-6">
-                  <span className="bg-slate-900 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">Respuesta del Asesor 440</span>
-                  <button onClick={() => setAiInsight(null)} className="text-slate-400 hover:text-slate-900 font-black text-[10px] uppercase">Borrar</button>
+              <div className="h-full bg-white p-12 rounded-[3.5rem] border-4 border-emerald-500/20 text-slate-800 animate-in fade-in slide-in-from-right-8 duration-500 relative overflow-hidden">
+                <div className="flex justify-between items-center mb-8">
+                  <span className="bg-slate-900 text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.25em]">Respuesta del Asesor</span>
+                  <button onClick={() => setAiInsight(null)} className="text-slate-400 hover:text-rose-500 font-black text-[10px] uppercase">Cerrar</button>
                 </div>
-                <div className="text-sm leading-relaxed prose prose-slate max-w-none max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
+                <div className="text-base leading-[1.8] prose prose-slate max-w-none max-h-[450px] overflow-y-auto pr-6 custom-scrollbar font-bold text-slate-800">
                   {aiInsight.split('\n').map((line, i) => (
-                    <p key={i} className="mb-3 last:mb-0 font-medium text-slate-700">{line}</p>
+                    <p key={i} className="mb-4 last:mb-0">{line}</p>
                   ))}
                 </div>
+                <div className="absolute -bottom-8 -right-8 text-8xl opacity-5 select-none rotate-12">🪙</div>
               </div>
             ) : (
-              <div className="h-full bg-white/5 p-12 rounded-[3rem] border border-white/5 border-dashed flex flex-col items-center justify-center text-center space-y-4">
-                <div className="text-6xl opacity-20">📊</div>
-                <h4 className="text-indigo-400 font-black uppercase tracking-widest text-xs">Sin consulta activa</h4>
-                <p className="text-slate-500 text-sm max-w-xs font-medium">Usa el campo de la izquierda para preguntar sobre tus ahorros, deudas o próximos pagos.</p>
+              <div className="h-full bg-white/5 p-16 rounded-[4rem] border-4 border-white/5 border-dashed flex flex-col items-center justify-center text-center space-y-6">
+                <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center text-5xl opacity-30">🎙️</div>
+                <div>
+                  <h4 className="text-indigo-400 font-black uppercase tracking-widest text-xs mb-2">Asesor en espera</h4>
+                  <p className="text-slate-500 text-sm max-w-xs font-medium leading-relaxed">Habla o escribe para obtener consejos sobre tu dinero, ahorros y pagos pendientes.</p>
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px]"></div>
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px]"></div>
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-600/5 rounded-full blur-[100px]"></div>
       </section>
     </div>
   );
