@@ -8,6 +8,7 @@ import PaymentCalendar from './components/PaymentCalendar';
 import DebtManager from './components/DebtManager';
 import ExpenseAnalysis from './components/ExpenseAnalysis';
 import Login from './components/Login';
+import VoiceAssistant from './components/VoiceAssistant';
 import { useFinance } from './hooks/useFinance';
 
 import { supabase } from './services/supabaseClient';
@@ -229,6 +230,13 @@ const App: React.FC = () => {
       logo={finance.settings.logo}
     >
       {renderContent()}
+      <VoiceAssistant
+        categories={finance.categories}
+        accounts={finance.accounts}
+        currency={finance.settings.currency}
+        geminiApiKey={finance.settings.geminiApiKey}
+        onAddTransaction={finance.addTransaction}
+      />
     </Layout>
   );
 };

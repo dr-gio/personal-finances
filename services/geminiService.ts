@@ -83,3 +83,44 @@ export const analyzeFinances = async (data: {
     return userMessage;
   }
 };
+
+export const parseVoiceCommand = async (text: string, categories: any[], accounts: any[], currency: string, apiKey: string) => {
+  if (!apiKey) return null;
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+  const prompt = `
+    Eres un procesador de lenguaje natural para la app FINANZAS PRO.
+    Tu tarea es convertir una frase de voz en un objeto JSON de transacción.
+    
+    FRASE DEL USUARIO: "${text}"
+    
+    DATOS DE REFERENCIA:
+    - Categorías disponibles: ${categories.map(c => `${c.id} (${c.name})`).join(", ")}
+    - Cuentas disponibles: ${accounts.map(a => `${a.id} (${a.name})`).join(", ")}
+    - Moneda: ${currency}
+    - Fecha de hoy: ${new Date().toISOString().split('T')[0]}
+
+    REGLAS DE RETORNO (JSON PURO):
+    1. "type": 'income' o 'expense'
+    2. "amount": número positivo
+    3. "categoryId": el ID de la categoría que mejor encaje (usa '1' para Alimentación, '3' para transporte, etc. según los IDs dados)
+    4. "accountId": el ID de la cuenta mencionada (usa '${accounts[0]?.id || ""}' si no se menciona)
+    5. "description": una descripción breve y limpia
+    6. "date": la fecha en formato YYYY-MM-DD (asume hoy si no se menciona)
+
+    DEVOLVER SOLO EL JSON, sin explicaciones ni markdown. Si no entiendes el monto, devuelve null.
+    Ejemplo de salida: {"type":"expense", "amount":50000, "categoryId":"1", "accountId":"a1", "description":"Cena con amigos", "date":"2026-02-10"}
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const jsonStr = response.text().trim().replace(/```json/g, "").replace(/```/g, "");
+    return JSON.parse(jsonStr);
+  } catch (error) {
+    console.error("Error parsing voice command:", error);
+    return null;
+  }
+};
