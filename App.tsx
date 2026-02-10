@@ -154,6 +154,7 @@ const App: React.FC = () => {
             categories={finance.categories}
             budgets={finance.budgets}
             debts={finance.debts}
+            obligations={finance.obligations}
             currency={finance.settings.currency}
             geminiApiKey={finance.settings.geminiApiKey}
           />

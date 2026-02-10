@@ -4,21 +4,23 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area, CartesianGrid
 } from 'recharts';
-import { Transaction, Category, Budget, Debt } from '../types';
-import { analyzeFinances } from '../services/geminiService';
+import { Transaction, Category, Budget, Debt, Obligation } from '../types';
+import { analyzeFinances, chatWithFinances } from '../services/geminiService';
 
 interface ExpenseAnalysisProps {
   transactions: Transaction[];
   categories: Category[];
   budgets: Budget[];
   debts: Debt[];
+  obligations: Obligation[];
   currency: string;
   geminiApiKey?: string;
 }
 
-const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categories, budgets, debts, currency, geminiApiKey }) => {
+const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categories, budgets, debts, obligations, currency, geminiApiKey }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [customQuery, setCustomQuery] = useState('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(new Date().getMonth());
 
@@ -38,11 +40,9 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
     const expense = filteredTransactions.filter(t => t.type === 'expense' || t.type === 'debt_payment').reduce((s, t) => s + t.amount, 0);
     const savingsRate = income > 0 ? ((income - expense) / income) * 100 : 0;
 
-    // Calcular promedio diario basado en el periodo
     const daysInPeriod = selectedMonth === 'all' ? 365 : new Date(selectedYear, (selectedMonth as number) + 1, 0).getDate();
     const dailyAvg = expense / daysInPeriod;
 
-    // Categoría más costosa
     const catTotals = filteredTransactions
       .filter(t => t.type === 'expense')
       .reduce((acc, t) => {
@@ -67,7 +67,7 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
       dailyAvg,
       topCategory: categories.find(c => c.id === maxCatId)?.name || 'N/A'
     };
-  }, [transactions, categories]);
+  }, [filteredTransactions, categories]);
 
   // Datos para gráfico de barras (Categorías)
   const barData = useMemo(() => {
@@ -82,7 +82,6 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
   // Datos para gráfico de área (Tendencia)
   const trendData = useMemo(() => {
     if (selectedMonth === 'all') {
-      // Vista Anual: Mes a mes
       const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
       return months.map((monthName, idx) => {
         const exp = filteredTransactions
@@ -94,7 +93,6 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
         return { date: monthName, Gastos: exp, Ingresos: inc, Balance: inc - exp };
       });
     } else {
-      // Vista Mensual: Día a día (del mes seleccionado)
       const lastDay = new Date(selectedYear, (selectedMonth as number) + 1, 0).getDate();
       const days = Array.from({ length: lastDay }, (_, i) => i + 1);
 
@@ -123,6 +121,27 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
         apiKey: geminiApiKey
       });
       setAiInsight(insight || "No hay suficientes datos para un análisis profundo.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleAskAi = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customQuery.trim() || !geminiApiKey) return;
+
+    setIsAnalyzing(true);
+    try {
+      const result = await chatWithFinances(customQuery, {
+        transactions,
+        budgets,
+        debts,
+        obligations,
+        currency,
+        apiKey: geminiApiKey
+      });
+      setAiInsight(result);
+      setCustomQuery('');
     } finally {
       setIsAnalyzing(false);
     }
@@ -158,7 +177,7 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
             className="bg-transparent px-4 py-2 font-black text-xs uppercase tracking-widest outline-none border-none cursor-pointer text-slate-700"
           >
-            {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+            {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
       </header>
@@ -189,7 +208,6 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Gráfico de Tendencia */}
         <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
           <h3 className="text-xl font-black text-slate-900 mb-8 uppercase tracking-tight flex items-center justify-between">
             <span className="flex items-center gap-2"><span>📈</span> Tendencia {selectedMonth === 'all' ? 'del Año' : 'del Mes'}</span>
@@ -221,7 +239,6 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
           </div>
         </div>
 
-        {/* Distribución por Categorías */}
         <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
           <h3 className="text-xl font-black text-slate-900 mb-8 uppercase tracking-tight flex items-center gap-2">
             <span>🏷️</span> Gastos por Categoría
@@ -246,43 +263,73 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
         </div>
       </div>
 
-      {/* Auditoría de IA */}
-      <section className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
-          <div className="flex-1 space-y-4">
-            <h3 className="text-3xl font-black text-white tracking-tight">Auditoría Financiera IA</h3>
-            <p className="text-slate-400 font-medium">¿Quieres saber cómo optimizar tu dinero? Deja que nuestra inteligencia analice tus patrones de consumo.</p>
-            {!aiInsight && !isAnalyzing && (
+      {/* Asesor Financiero IA */}
+      <section className="bg-slate-900 p-10 rounded-[4rem] shadow-2xl relative overflow-hidden">
+        <div className="relative z-10 flex flex-col md:flex-row gap-10">
+          <div className="w-full md:w-1/3 flex flex-col gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🤖</span>
+                <h3 className="text-3xl font-black text-white tracking-tight">Tu Asesor Personal</h3>
+              </div>
+              <p className="text-slate-400 font-medium text-sm">Tu IA conoce todos tus movimientos, deudas y presupuestos. Pregúntale cualquier cosa.</p>
+            </div>
+
+            <form onSubmit={handleAskAi} className="space-y-4">
+              <div className="bg-white/5 border border-white/10 p-4 rounded-3xl focus-within:border-indigo-500 transition-all">
+                <textarea
+                  value={customQuery}
+                  onChange={(e) => setCustomQuery(e.target.value)}
+                  placeholder="¿En qué puedo mejorar mis gastos?"
+                  className="w-full bg-transparent border-none outline-none text-white text-sm font-bold resize-none h-24 placeholder:text-slate-600"
+                />
+              </div>
               <button
-                onClick={handleGenerateAiInsight}
-                className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-500/20 active:scale-95"
+                type="submit"
+                disabled={isAnalyzing || !customQuery.trim()}
+                className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-500/20 disabled:opacity-50"
               >
-                🚀 Iniciar Análisis con Gemini
+                💬 Consultar al Asesor
               </button>
-            )}
+            </form>
+
+            <button
+              onClick={handleGenerateAiInsight}
+              className="text-indigo-400 font-black uppercase tracking-widest text-[10px] py-4 border border-indigo-500/30 rounded-2xl hover:bg-indigo-500/10 transition-all"
+            >
+              🚀 Auditoría Financiera Completa
+            </button>
           </div>
-          <div className="w-full md:w-2/3">
+
+          <div className="flex-1 min-h-[400px]">
             {isAnalyzing ? (
-              <div className="bg-white/5 p-8 rounded-[2rem] border border-white/10 flex flex-col items-center justify-center gap-4 py-12">
-                <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-indigo-400 font-black uppercase tracking-widest text-xs animate-pulse">Analizando tus movimientos...</p>
+              <div className="h-full bg-white/5 p-8 rounded-[3rem] border border-white/10 flex flex-col items-center justify-center gap-4 py-12">
+                <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-indigo-400 font-black uppercase tracking-widest text-xs animate-pulse">Procesando consulta financiera...</p>
               </div>
             ) : aiInsight ? (
-              <div className="bg-white p-8 rounded-[2rem] border border-indigo-500/30 text-slate-800 prose prose-slate prose-invert max-w-none max-h-[400px] overflow-y-auto scrollbar-hide">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Recomendaciones de Gemini</span>
-                  <button onClick={() => setAiInsight(null)} className="text-slate-400 hover:text-slate-600">Nueva consulta</button>
+              <div className="h-full bg-white p-10 rounded-[3rem] border border-indigo-500/30 text-slate-800 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div className="flex justify-between items-center mb-6">
+                  <span className="bg-slate-900 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">Respuesta del Asesor 440</span>
+                  <button onClick={() => setAiInsight(null)} className="text-slate-400 hover:text-slate-900 font-black text-[10px] uppercase">Borrar</button>
                 </div>
-                <div className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
-                  {aiInsight}
+                <div className="text-sm leading-relaxed prose prose-slate max-w-none max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
+                  {aiInsight.split('\n').map((line, i) => (
+                    <p key={i} className="mb-3 last:mb-0 font-medium text-slate-700">{line}</p>
+                  ))}
                 </div>
               </div>
             ) : (
-              <div className="hidden md:block opacity-20 text-[10rem] select-none pointer-events-none">🤖</div>
+              <div className="h-full bg-white/5 p-12 rounded-[3rem] border border-white/5 border-dashed flex flex-col items-center justify-center text-center space-y-4">
+                <div className="text-6xl opacity-20">📊</div>
+                <h4 className="text-indigo-400 font-black uppercase tracking-widest text-xs">Sin consulta activa</h4>
+                <p className="text-slate-500 text-sm max-w-xs font-medium">Usa el campo de la izquierda para preguntar sobre tus ahorros, deudas o próximos pagos.</p>
+              </div>
             )}
           </div>
         </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px]"></div>
       </section>
     </div>
   );
