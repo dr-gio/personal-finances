@@ -7,7 +7,6 @@ export const analyzeFinances = async (data: {
   currency: string;
   apiKey?: string;
 }) => {
-  // Priorizar la API Key pasada por argumento (desde settings en Supabase)
   const apiKey = data.apiKey || "";
 
   if (!apiKey) {
@@ -16,11 +15,8 @@ export const analyzeFinances = async (data: {
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-
-  // Usamos el modelo 2.0 flash que es el confirmado disponible para esta cuenta
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-  // Limpiar los datos para no enviar imágenes base64 (que causan el error de exceso de tokens)
   const cleanTransactions = data.transactions.slice(0, 30).map(t => ({
     fecha: t.date,
     monto: t.amount,
@@ -105,13 +101,12 @@ export const parseVoiceCommand = async (text: string, categories: any[], account
     REGLAS DE RETORNO (JSON PURO):
     1. "type": 'income' o 'expense'
     2. "amount": número positivo
-    3. "categoryId": el ID de la categoría que mejor encaje (usa '1' para Alimentación, '3' para transporte, etc. según los IDs dados)
+    3. "categoryId": el ID de la categoría que mejor encaje
     4. "accountId": el ID de la cuenta mencionada (usa '${accounts[0]?.id || ""}' si no se menciona)
     5. "description": una descripción breve y limpia
     6. "date": la fecha en formato YYYY-MM-DD (asume hoy si no se menciona)
 
     DEVOLVER SOLO EL JSON, sin explicaciones ni markdown. Si no entiendes el monto, devuelve null.
-    Ejemplo de salida: {"type":"expense", "amount":50000, "categoryId":"1", "accountId":"a1", "description":"Cena con amigos", "date":"2026-02-10"}
   `;
 
   try {
@@ -122,5 +117,60 @@ export const parseVoiceCommand = async (text: string, categories: any[], account
   } catch (error) {
     console.error("Error parsing voice command:", error);
     return null;
+  }
+};
+
+export const chatWithFinances = async (query: string, data: {
+  transactions: any[];
+  budgets: any[];
+  debts: any[];
+  obligations: any[];
+  currency: string;
+  apiKey: string;
+}) => {
+  if (!data.apiKey) return "Configura tu API Key en Ajustes.";
+
+  const genAI = new GoogleGenerativeAI(data.apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+  const cleanTransactions = data.transactions.slice(0, 50).map(t => ({
+    fecha: t.date,
+    monto: t.amount,
+    desc: t.description,
+    tipo: t.type
+  }));
+
+  const cleanObligations = data.obligations.map(o => ({
+    desc: o.description,
+    monto: o.amount,
+    fecha: o.dueDate,
+    pagado: o.isPaid
+  }));
+
+  const prompt = `
+    Eres "FinanzaPro AI", un asistente financiero experto. 
+    Responde la pregunta del usuario usando su contexto financiero:
+
+    PREGUNTA: "${query}"
+
+    CONTEXTO:
+    - Moneda: ${data.currency}
+    - Movimientos: ${JSON.stringify(cleanTransactions)}
+    - Deudas: ${JSON.stringify(data.debts.map(d => ({ nombre: d.name, saldo: d.remainingAmount })))}
+    - Próximos Pagos: ${JSON.stringify(cleanObligations)}
+    - Fecha Hoy: ${new Date().toISOString().split('T')[0]}
+
+    REGLAS:
+    - Responde en ESPAÑOL.
+    - Sé breve y usa Markdown.
+    - Si preguntan por pagos pendientes, revisa "Próximos Pagos".
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    return "Error al conectar con la IA.";
   }
 };

@@ -233,6 +233,9 @@ const App: React.FC = () => {
       <VoiceAssistant
         categories={finance.categories}
         accounts={finance.accounts}
+        transactions={finance.transactions}
+        debts={finance.debts}
+        obligations={finance.obligations}
         currency={finance.settings.currency}
         geminiApiKey={finance.settings.geminiApiKey}
         onAddTransaction={finance.addTransaction}
