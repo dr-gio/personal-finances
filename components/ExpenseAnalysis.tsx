@@ -52,8 +52,9 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
     let maxCatId = '';
     let maxVal = 0;
     Object.entries(catTotals).forEach(([id, val]) => {
-      if (val > maxVal) {
-        maxVal = val;
+      const numericVal = val as number;
+      if (numericVal > maxVal) {
+        maxVal = numericVal;
         maxCatId = id;
       }
     });
@@ -89,7 +90,7 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
         const inc = filteredTransactions
           .filter(t => new Date(t.date).getMonth() === idx && t.type === 'income')
           .reduce((s, t) => s + t.amount, 0);
-        return { date: monthName, Gastos: exp, Ingresos: inc };
+        return { date: monthName, Gastos: exp, Ingresos: inc, Balance: inc - exp };
       });
     } else {
       // Vista Mensual: Día a día (del mes seleccionado)
@@ -105,7 +106,7 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
         const inc = filteredTransactions
           .filter(t => t.date === dateStr && t.type === 'income')
           .reduce((s, t) => s + t.amount, 0);
-        return { date: day.toString(), Gastos: exp, Ingresos: inc };
+        return { date: day.toString(), Gastos: exp, Ingresos: inc, Balance: inc - exp };
       });
     }
   }, [filteredTransactions, selectedMonth, selectedYear]);
@@ -133,21 +134,27 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
           <p className="text-slate-600 font-medium">Radiografía completa de tus finanzas personales</p>
         </div>
 
-        <div className="flex bg-slate-100 p-1.5 rounded-[2rem] shadow-inner border border-slate-200 min-w-[300px]">
+        <div className="flex items-center bg-white p-2 rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-200 min-w-[320px]">
+          <div className="pl-4 pr-2 text-indigo-600">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
+            </svg>
+          </div>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-            className="flex-1 bg-white px-4 py-2 rounded-2xl font-bold text-sm outline-none border-none shadow-sm cursor-pointer"
+            className="flex-1 bg-transparent px-2 py-2 font-black text-xs uppercase tracking-widest outline-none border-none cursor-pointer text-slate-700"
           >
-            <option value="all">Todo el Año</option>
+            <option value="all">Año Completo</option>
             {['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'].map((m, i) => (
               <option key={i} value={i}>{m}</option>
             ))}
           </select>
+          <div className="h-4 w-px bg-slate-200 mx-2"></div>
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="ml-2 bg-white px-4 py-2 rounded-2xl font-bold text-sm outline-none border-none shadow-sm cursor-pointer"
+            className="bg-transparent px-4 py-2 font-black text-xs uppercase tracking-widest outline-none border-none cursor-pointer text-slate-700"
           >
             {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
