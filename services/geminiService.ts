@@ -17,8 +17,8 @@ export const analyzeFinances = async (data: {
 
   const genAI = new GoogleGenerativeAI(apiKey);
 
-  // Usamos el modelo 1.5 flash que es el más compatible y estable globalmente
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  // Usamos el modelo 2.0 flash que es el confirmado disponible para esta cuenta
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const prompt = `
     Actúa como un asesor financiero experto y motivador para la app FINANZAS PRO.
