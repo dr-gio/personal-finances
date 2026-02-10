@@ -17,7 +17,7 @@ import { getUpcomingObligations } from './utils/dateHelpers';
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('transactions');
   const finance = useFinance(); // Aún usa localStorage, pero pronto lo cambiaremos
 
   useEffect(() => {
