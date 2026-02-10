@@ -46,7 +46,7 @@ const PaymentCalendar: React.FC<PaymentCalendarProps> = ({ obligations, categori
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.description || !formData.amount) return;
-    
+
     const payload = {
       description: formData.description,
       amount: parseFloat(formData.amount),
@@ -148,7 +148,14 @@ const PaymentCalendar: React.FC<PaymentCalendarProps> = ({ obligations, categori
                   )}
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => handleOpenEdit(o)} className="p-2 text-slate-400 hover:text-indigo-600">✏️</button>
-                    <button onClick={() => onDelete(o.id)} className="text-slate-300 hover:text-rose-500 p-2 transition-colors">
+                    <button
+                      onClick={() => {
+                        if (window.confirm('¿Estás seguro de que deseas eliminar este recordatorio de pago?')) {
+                          onDelete(o.id);
+                        }
+                      }}
+                      className="text-slate-300 hover:text-rose-500 p-2 transition-colors"
+                    >
                       🗑️
                     </button>
                   </div>
@@ -220,9 +227,9 @@ const PaymentCalendar: React.FC<PaymentCalendarProps> = ({ obligations, categori
                   {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
                 </select>
               </div>
-              <div className="flex items-center gap-3 p-4 bg-indigo-50 rounded-2xl cursor-pointer" onClick={() => setFormData({...formData, isRecurring: !formData.isRecurring})}>
+              <div className="flex items-center gap-3 p-4 bg-indigo-50 rounded-2xl cursor-pointer" onClick={() => setFormData({ ...formData, isRecurring: !formData.isRecurring })}>
                 <div className={`w-10 h-6 rounded-full transition-all relative ${formData.isRecurring ? 'bg-indigo-600' : 'bg-slate-300'}`}>
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.isRecurring ? 'right-1' : 'left-1'}`} />
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.isRecurring ? 'right-1' : 'left-1'}`} />
                 </div>
                 <span className="text-xs font-black text-indigo-700 uppercase tracking-widest">¿Es un compromiso recurrente?</span>
               </div>

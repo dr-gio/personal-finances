@@ -19,7 +19,7 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<string | null>(null);
   const [createObligation, setCreateObligation] = useState(false);
-  
+
   const initialForm = {
     name: '',
     totalAmount: '',
@@ -56,7 +56,7 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.totalAmount) return;
-    
+
     const debtPayload = {
       name: formData.name,
       totalAmount: parseFloat(formData.totalAmount),
@@ -72,7 +72,7 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
       onUpdate(editingDebt.id, debtPayload);
     } else {
       onAdd(debtPayload);
-      
+
       // Enlazar como obligación si hay fecha y se marcó el check
       if (createObligation && formData.dueDate) {
         onAddObligation({
@@ -95,7 +95,7 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
   const handlePayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isPaymentModalOpen || !paymentData.amount || !paymentData.accountId) return;
-    
+
     onPayment(parseFloat(paymentData.amount), isPaymentModalOpen, paymentData.accountId);
     setIsPaymentModalOpen(null);
     setPaymentData({ amount: '', accountId: accounts?.[0]?.id || '' });
@@ -137,16 +137,25 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
                     <div>
                       <h4 className="font-black text-slate-900 text-lg uppercase tracking-tight">{debt.name}</h4>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        {debt.type === 'credit_card' ? 'Tarjeta de Crédito' : 
-                         debt.type === 'loan' ? 'Crédito Personal' : 
-                         debt.type === 'mortgage' ? 'Hipotecario' : 
-                         debt.type === 'vehicle' ? 'Crédito Vehículo' : 'Otros'}
+                        {debt.type === 'credit_card' ? 'Tarjeta de Crédito' :
+                          debt.type === 'loan' ? 'Crédito Personal' :
+                            debt.type === 'mortgage' ? 'Hipotecario' :
+                              debt.type === 'vehicle' ? 'Crédito Vehículo' : 'Otros'}
                       </p>
                     </div>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => handleOpenEdit(debt)} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors">✏️</button>
-                    <button onClick={() => onDelete(debt.id)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors">🗑️</button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm('¿Estás seguro de que deseas eliminar este registro de deuda?')) {
+                          onDelete(debt.id);
+                        }
+                      }}
+                      className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+                    >
+                      🗑️
+                    </button>
                   </div>
                 </div>
 
@@ -168,7 +177,7 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
 
                   <div className="space-y-3">
                     <div className="w-full h-4 bg-slate-50 rounded-full overflow-hidden border border-slate-100 p-0.5">
-                      <div 
+                      <div
                         className="h-full transition-all duration-1000 ease-out rounded-full shadow-inner"
                         style={{ width: `${progress}%`, backgroundColor: debt.color }}
                       />
@@ -184,7 +193,7 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
                   </div>
 
                   {!isFinished && (
-                    <button 
+                    <button
                       onClick={() => setIsPaymentModalOpen(debt.id)}
                       className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200"
                     >
@@ -211,7 +220,7 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
               <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">
                 {editingDebt ? 'Editar Crédito' : 'Configurar Nuevo Crédito'}
               </h3>
-              <button onClick={() => {setIsModalOpen(false); setEditingDebt(null);}} className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm border border-slate-100 transition-all active:scale-90 text-xl">✕</button>
+              <button onClick={() => { setIsModalOpen(false); setEditingDebt(null); }} className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm border border-slate-100 transition-all active:scale-90 text-xl">✕</button>
             </div>
             <form onSubmit={handleSubmit} className="p-10 space-y-8 max-h-[80vh] overflow-y-auto scrollbar-hide">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -222,7 +231,7 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
                     required
                     placeholder="Ej: Financiación Moto, Crédito Carro"
                     value={formData.name}
-                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900"
                   />
                 </div>
@@ -231,8 +240,8 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
                   <select
                     value={formData.type}
                     onChange={e => setFormData({
-                      ...formData, 
-                      type: e.target.value as DebtType, 
+                      ...formData,
+                      type: e.target.value as DebtType,
                       icon: e.target.value === 'credit_card' ? '💳' : e.target.value === 'loan' ? '💸' : e.target.value === 'mortgage' ? '🏠' : e.target.value === 'vehicle' ? '🚗' : '📉'
                     })}
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 appearance-none"
@@ -253,7 +262,7 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
                     type="number"
                     required
                     value={formData.totalAmount}
-                    onChange={e => setFormData({...formData, totalAmount: e.target.value})}
+                    onChange={e => setFormData({ ...formData, totalAmount: e.target.value })}
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-black text-lg text-slate-900"
                   />
                 </div>
@@ -263,7 +272,7 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
                     type="number"
                     placeholder="Mismo que total si es nuevo"
                     value={formData.remainingAmount}
-                    onChange={e => setFormData({...formData, remainingAmount: e.target.value})}
+                    onChange={e => setFormData({ ...formData, remainingAmount: e.target.value })}
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-black text-lg text-slate-900"
                   />
                 </div>
@@ -277,7 +286,7 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
                     step="0.01"
                     placeholder="0.00"
                     value={formData.interestRate}
-                    onChange={e => setFormData({...formData, interestRate: e.target.value})}
+                    onChange={e => setFormData({ ...formData, interestRate: e.target.value })}
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900"
                   />
                 </div>
@@ -286,7 +295,7 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
                   <input
                     type="date"
                     value={formData.dueDate}
-                    onChange={e => setFormData({...formData, dueDate: e.target.value})}
+                    onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900"
                   />
                 </div>
@@ -299,19 +308,19 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
                     <input
                       type="color"
                       value={formData.color}
-                      onChange={e => setFormData({...formData, color: e.target.value})}
+                      onChange={e => setFormData({ ...formData, color: e.target.value })}
                       className="w-12 h-12 rounded-xl border-none cursor-pointer overflow-hidden p-0 bg-transparent"
                     />
                     <span className="text-sm font-black text-slate-700 uppercase tracking-tighter">{formData.color}</span>
                   </div>
                 </div>
                 {!editingDebt && (
-                  <div 
+                  <div
                     onClick={() => setCreateObligation(!createObligation)}
                     className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all cursor-pointer ${createObligation ? 'bg-indigo-50 border-indigo-200 shadow-inner' : 'bg-slate-50 border-slate-100 opacity-60'}`}
                   >
                     <div className={`w-10 h-6 rounded-full transition-all relative ${createObligation ? 'bg-indigo-600' : 'bg-slate-300'}`}>
-                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${createObligation ? 'right-1' : 'left-1'}`} />
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${createObligation ? 'right-1' : 'left-1'}`} />
                     </div>
                     <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Añadir al Calendario</span>
                   </div>
@@ -333,42 +342,42 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
       {isPaymentModalOpen && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
-             <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Realizar Pago</h3>
-                <button onClick={() => setIsPaymentModalOpen(null)} className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-slate-400 hover:text-slate-600 shadow-sm border border-slate-100 transition-all active:scale-90 text-xl">✕</button>
+            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Realizar Pago</h3>
+              <button onClick={() => setIsPaymentModalOpen(null)} className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-slate-400 hover:text-slate-600 shadow-sm border border-slate-100 transition-all active:scale-90 text-xl">✕</button>
+            </div>
+            <form onSubmit={handlePayment} className="p-10 space-y-8">
+              <div className="space-y-3">
+                <label className="text-[12px] font-black text-slate-600 uppercase tracking-widest px-1">Valor del Pago</label>
+                <input
+                  type="number"
+                  required
+                  autoFocus
+                  value={paymentData.amount}
+                  onChange={e => setPaymentData({ ...paymentData, amount: e.target.value })}
+                  className="w-full px-8 py-6 bg-slate-50 border border-slate-200 rounded-[2rem] focus:ring-2 focus:ring-emerald-500 outline-none font-black text-4xl text-slate-900 text-center"
+                  placeholder="0.00"
+                />
               </div>
-              <form onSubmit={handlePayment} className="p-10 space-y-8">
-                <div className="space-y-3">
-                  <label className="text-[12px] font-black text-slate-600 uppercase tracking-widest px-1">Valor del Pago</label>
-                  <input
-                    type="number"
-                    required
-                    autoFocus
-                    value={paymentData.amount}
-                    onChange={e => setPaymentData({...paymentData, amount: e.target.value})}
-                    className="w-full px-8 py-6 bg-slate-50 border border-slate-200 rounded-[2rem] focus:ring-2 focus:ring-emerald-500 outline-none font-black text-4xl text-slate-900 text-center"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div className="space-y-3">
-                  <label className="text-[12px] font-black text-slate-600 uppercase tracking-widest px-1">Cuenta de Origen</label>
-                  <select
-                    value={paymentData.accountId}
-                    onChange={e => setPaymentData({...paymentData, accountId: e.target.value})}
-                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900"
-                  >
-                    {accounts.map(acc => (
-                      <option key={acc.id} value={acc.id}>{acc.icon} {acc.name} ({currency}{acc.balance.toLocaleString()})</option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-emerald-600 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 active:scale-95"
+              <div className="space-y-3">
+                <label className="text-[12px] font-black text-slate-600 uppercase tracking-widest px-1">Cuenta de Origen</label>
+                <select
+                  value={paymentData.accountId}
+                  onChange={e => setPaymentData({ ...paymentData, accountId: e.target.value })}
+                  className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900"
                 >
-                  Confirmar Abono
-                </button>
-              </form>
+                  {accounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>{acc.icon} {acc.name} ({currency}{acc.balance.toLocaleString()})</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-emerald-600 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 active:scale-95"
+              >
+                Confirmar Abono
+              </button>
+            </form>
           </div>
         </div>
       )}

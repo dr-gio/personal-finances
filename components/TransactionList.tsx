@@ -189,15 +189,22 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
                         )}
                       </td>
                       <td className={`px-6 py-5 text-right text-sm font-black ${t.type === 'income' ? 'text-emerald-500' :
-                          t.type === 'expense' || t.type === 'debt_payment' ? 'text-rose-500' :
-                            'text-indigo-500'
+                        t.type === 'expense' || t.type === 'debt_payment' ? 'text-rose-500' :
+                          'text-indigo-500'
                         }`}>
                         {t.type === 'income' ? '+' : (t.type === 'expense' || t.type === 'debt_payment') ? '-' : '⇄'}{currency}{t.amount.toLocaleString()}
                       </td>
                       <td className="px-6 py-5 text-right">
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => startEdit(t)} className="text-slate-400 hover:text-indigo-600">✏️</button>
-                          <button onClick={() => onDelete(t.id)} className="text-slate-300 hover:text-rose-500">
+                          <button
+                            onClick={() => {
+                              if (window.confirm('¿Estás seguro de que deseas eliminar este movimiento? El saldo de tu cuenta se revertirá automáticamente.')) {
+                                onDelete(t.id);
+                              }
+                            }}
+                            className="text-slate-300 hover:text-rose-500"
+                          >
                             🗑️
                           </button>
                         </div>
@@ -261,8 +268,8 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
                     type="button"
                     onClick={() => setFormData({ ...formData, type: type as TransactionType })}
                     className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${formData.type === type
-                        ? 'bg-white text-indigo-600 shadow-sm'
-                        : 'text-slate-400'
+                      ? 'bg-white text-indigo-600 shadow-sm'
+                      : 'text-slate-400'
                       }`}
                   >
                     {type === 'expense' ? 'Gasto' : type === 'income' ? 'Ingreso' : 'Transf.'}

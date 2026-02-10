@@ -284,7 +284,16 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => startEditAcc(acc)} className="p-2 text-slate-400 hover:text-indigo-600">✏️</button>
-                <button onClick={() => onDeleteAccount(acc.id)} className="p-2 text-slate-400 hover:text-rose-500">🗑️</button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('¿Estás seguro de que quieres eliminar esta cuenta? Se perderá el rastro de sus saldos.')) {
+                      onDeleteAccount(acc.id);
+                    }
+                  }}
+                  className="p-2 text-slate-400 hover:text-rose-500"
+                >
+                  🗑️
+                </button>
               </div>
             </div>
           ))}
@@ -350,7 +359,16 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => startEditCat(cat)} className="p-2 text-slate-400 hover:text-indigo-600">✏️</button>
-                <button onClick={() => onDeleteCategory(cat.id)} className="p-2 text-slate-400 hover:text-rose-500">🗑️</button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('¿Estás seguro de que quieres eliminar esta categoría?')) {
+                      onDeleteCategory(cat.id);
+                    }
+                  }}
+                  className="p-2 text-slate-400 hover:text-rose-500"
+                >
+                  🗑️
+                </button>
               </div>
             </div>
           ))}
