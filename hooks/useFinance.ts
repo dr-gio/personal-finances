@@ -14,9 +14,9 @@ export const useFinance = () => {
     const [settings, setSettings] = useState<AppSettings>({
         userName: 'Usuario',
         currency: '$',
-        primaryColor: '#4f46e5',
-        secondaryColor: '#10b981',
-        accentColor: '#f59e0b',
+        primaryColor: '#26364d',
+        secondaryColor: '#536e83',
+        accentColor: '#a27b5a',
         logo: ''
     });
     const [userId, setUserId] = useState<string | null>(null);

@@ -82,9 +82,9 @@ const App: React.FC = () => {
   // Inyección dinámica de tema con 3 colores
   useEffect(() => {
     const root = document.documentElement;
-    const c1 = finance.settings.primaryColor || '#4f46e5';
-    const c2 = finance.settings.secondaryColor || '#10b981';
-    const c3 = finance.settings.accentColor || '#f59e0b';
+    const c1 = finance.settings.primaryColor || '#26364d';
+    const c2 = finance.settings.secondaryColor || '#536e83';
+    const c3 = finance.settings.accentColor || '#a27b5a';
 
     root.style.setProperty('--primary-color', c1);
     root.style.setProperty('--secondary-color', c2);
