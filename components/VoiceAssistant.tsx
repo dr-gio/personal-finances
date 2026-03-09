@@ -52,15 +52,14 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
     const processCommand = async (text: string) => {
         if (!geminiApiKey) {
-            alert("Configura tu API Key en Ajustes.");
+            setMode('chat');
+            setAiResponse("⚠️ Por favor configura tu API Key de Gemini en Ajustes.");
             return;
         }
 
         setIsProcessing(true);
         setShowModal(true);
 
-        // Heurística simple: si la frase tiene números probablemente es un registro, 
-        // si es una pregunta ("cuanto", "cuando", "recomienda") es chat.
         const lowerText = text.toLowerCase();
         const isQuestion = lowerText.includes('cuánto') || lowerText.includes('cuanto') ||
             lowerText.includes('cuando') || lowerText.includes('cuándo') ||
@@ -69,14 +68,28 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
         if (isQuestion) {
             setMode('chat');
-            const response = await chatWithFinances(text, {
-                transactions, budgets: [], debts, obligations, currency, apiKey: geminiApiKey
-            });
-            setAiResponse(response);
+            try {
+                const response = await chatWithFinances(text, {
+                    transactions, budgets: [], debts, obligations, currency, apiKey: geminiApiKey
+                });
+                setAiResponse(response || 'La IA no pudo generar una respuesta.');
+            } catch (err: any) {
+                setAiResponse('❌ Error al conectar con la IA: ' + (err.message || 'Error desconocido'));
+            }
         } else {
             setMode('create');
-            const result = await parseVoiceCommand(text, categories, accounts, currency, geminiApiKey);
-            setParsedData(result);
+            try {
+                const result = await parseVoiceCommand(text, categories, accounts, currency, geminiApiKey);
+                if (result) {
+                    setParsedData(result);
+                } else {
+                    setMode('chat');
+                    setAiResponse('No pude interpretar ese comando como un gasto o ingreso. Intenta: "gasté 50 en comida" o una pregunta como "¿Cuánto debo?"');
+                }
+            } catch (err: any) {
+                setMode('chat');
+                setAiResponse('❌ Error al procesar el comando: ' + (err.message || 'Error desconocido'));
+            }
         }
 
         setIsProcessing(false);
@@ -109,12 +122,29 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         }
     };
 
-    const handleTextSubmit = (e: React.FormEvent) => {
+    const handleTextSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (textInput.trim()) {
-            processCommand(textInput);
-            setTextInput('');
+        if (!textInput.trim() || isProcessing) return;
+        if (!geminiApiKey) {
+            setMode('chat');
+            setAiResponse("⚠️ Configura tu API Key de Gemini en Ajustes.");
+            setShowModal(true);
+            return;
         }
+        const query = textInput.trim();
+        setTextInput('');
+        setIsProcessing(true);
+        setParsedData(null);
+        setMode('chat');
+        try {
+            const response = await chatWithFinances(query, {
+                transactions, budgets: [], debts, obligations, currency, apiKey: geminiApiKey
+            });
+            setAiResponse(response || 'La IA no devolvió respuesta.');
+        } catch (err: any) {
+            setAiResponse('❌ Error al conectar con la IA: ' + (err.message || 'Error desconocido'));
+        }
+        setIsProcessing(false);
     };
 
     return (
@@ -180,8 +210,13 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                                     </div>
                                     <button
                                         type="submit"
-                                        className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-700 transition-all"
-                                    >Consultar con IA</button>
+                                        disabled={isProcessing}
+                                        className={`w-full text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${isProcessing ? 'bg-slate-400 cursor-wait' : 'bg-slate-900 hover:bg-indigo-700'}`}
+                                    >
+                                        {isProcessing ? (
+                                            <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Consultando...</>
+                                        ) : 'Consultar con IA'}
+                                    </button>
                                 </form>
                             )}
 
