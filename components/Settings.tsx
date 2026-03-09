@@ -1,6 +1,7 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Category, AppSettings, Account, AccountType } from '../types';
+import { COLOMBIAN_BANKS } from '../utils/bankIcons';
 
 interface SettingsProps {
   categories: Category[];
@@ -25,6 +26,11 @@ const Settings: React.FC<SettingsProps> = ({
   const [newAcc, setNewAcc] = useState({ name: '', type: 'bank' as AccountType, balance: 0, icon: '🏦', color: '#6366f1' });
   const [localSettings, setLocalSettings] = useState(settings);
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync localSettings when the parent settings prop changes (e.g., after Supabase loads the API key)
+  useEffect(() => {
+    setLocalSettings(settings);
+  }, [settings]);
 
   const handleAddCat = (e: React.FormEvent) => {
     e.preventDefault();
@@ -248,7 +254,10 @@ const Settings: React.FC<SettingsProps> = ({
             <label className="text-[11px] font-black text-white/80 uppercase tracking-widest px-1">Tipo</label>
             <select
               value={newAcc.type}
-              onChange={(e) => setNewAcc({ ...newAcc, type: e.target.value as AccountType, icon: e.target.value === 'cash' ? '💵' : e.target.value === 'card' ? '💳' : '🏦' })}
+              onChange={(e) => {
+                const type = e.target.value as AccountType;
+                setNewAcc({ ...newAcc, type, icon: type === 'cash' ? '💵' : type === 'card' ? '💳' : '🏦' });
+              }}
               className="w-full px-5 py-4 bg-white/10 border border-white/20 text-white rounded-2xl outline-none font-bold appearance-none"
             >
               <option value="bank" className="text-slate-900">Banco</option>
@@ -256,6 +265,21 @@ const Settings: React.FC<SettingsProps> = ({
               <option value="card" className="text-slate-900">Tarjeta</option>
             </select>
           </div>
+          {newAcc.type === 'bank' && (
+            <div className="flex-1 min-w-[200px] space-y-2">
+              <label className="text-[11px] font-black text-white/80 uppercase tracking-widest px-1">Logo del Banco</label>
+              <select
+                value={COLOMBIAN_BANKS.find(b => b.url === newAcc.icon)?.url || ''}
+                onChange={(e) => setNewAcc({ ...newAcc, icon: e.target.value || '🏦' })}
+                className="w-full px-5 py-4 bg-white/10 border border-white/20 text-white rounded-2xl outline-none font-bold appearance-none"
+              >
+                <option value="" className="text-slate-900">Usar Genérico 🏦</option>
+                {COLOMBIAN_BANKS.map(bank => (
+                  <option key={bank.domain} value={bank.url} className="text-slate-900">{bank.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="w-24 space-y-2">
             <label className="text-[11px] font-black text-white/80 uppercase tracking-widest px-1">Color</label>
             <input
@@ -290,8 +314,12 @@ const Settings: React.FC<SettingsProps> = ({
           {accounts.map(acc => (
             <div key={acc.id} className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between group hover:border-indigo-200 transition-all" style={{ borderLeft: `8px solid ${acc.color || '#eee'}` }}>
               <div className="flex items-center gap-4">
-                <span className="text-2xl w-12 h-12 flex items-center justify-center bg-slate-50 rounded-2xl">
-                  {acc.icon}
+                <span className="text-2xl w-12 h-12 flex items-center justify-center bg-slate-50 rounded-2xl overflow-hidden p-1.5">
+                  {acc.icon.startsWith('http') ? (
+                    <img src={acc.icon} alt={acc.name} className="w-full h-full object-contain" />
+                  ) : (
+                    acc.icon
+                  )}
                 </span>
                 <div>
                   <p className="font-black text-slate-800 uppercase text-[10px] tracking-widest opacity-60">{acc.name}</p>
