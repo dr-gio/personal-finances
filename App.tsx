@@ -14,7 +14,51 @@ import { useFinance } from './hooks/useFinance';
 import { supabase } from './services/supabaseClient';
 import { getUpcomingObligations } from './utils/dateHelpers';
 
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("React Error Boundary caught:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8 text-center">
+          <div className="bg-white p-12 rounded-[3.5rem] shadow-2xl shadow-indigo-100 max-w-md border border-slate-100">
+            <div className="text-6xl mb-6">⚠️</div>
+            <h1 className="text-2xl font-black text-slate-800 mb-4 tracking-tight">ALGO SALIÓ MAL</h1>
+            <p className="text-slate-500 font-medium mb-8">La aplicación encontró un error inesperado al usar la IA. Por favor, recarga el sitio.</p>
+            <button
+              onClick={() => window.location.assign(window.location.origin)}
+              className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100"
+            >Recargar App</button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const App: React.FC = () => {
+  // ... rest of the existing App content should be wrapped in <ErrorBoundary>
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('transactions');
@@ -220,33 +264,35 @@ const App: React.FC = () => {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-indigo-600 font-bold">Cargando Finanzas Pro...</div>;
   }
 
-  if (!session) {
-    return <Login onLogin={() => { }} />;
-  }
-
-  const upcomingPayments = getUpcomingObligations(finance.obligations, 3); // Alertas para los próximos 3 días
+  const upcomingPayments = getUpcomingObligations(finance.obligations, 3);
   const hasAlerts = upcomingPayments.length > 0;
 
   return (
-    <Layout
-      activeTab={activeTab}
-      setActiveTab={setActiveTab}
-      userName={session.user.email?.split('@')[0] || 'Usuario'}
-      logo={finance.settings.logo}
-      hasAlerts={hasAlerts}
-    >
-      {renderContent()}
-      <VoiceAssistant
-        categories={finance.categories}
-        accounts={finance.accounts}
-        transactions={finance.transactions}
-        debts={finance.debts}
-        obligations={finance.obligations}
-        currency={finance.settings.currency}
-        geminiApiKey={finance.settings.geminiApiKey}
-        onAddTransaction={finance.addTransaction}
-      />
-    </Layout>
+    <ErrorBoundary>
+      {!session ? (
+        <Login onLogin={() => { }} />
+      ) : (
+        <Layout
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          userName={session.user.email?.split('@')[0] || 'Usuario'}
+          logo={finance.settings.logo}
+          hasAlerts={hasAlerts}
+        >
+          {renderContent()}
+          <VoiceAssistant
+            categories={finance.categories}
+            accounts={finance.accounts}
+            transactions={finance.transactions}
+            debts={finance.debts}
+            obligations={finance.obligations}
+            currency={finance.settings.currency}
+            geminiApiKey={finance.settings.geminiApiKey}
+            onAddTransaction={finance.addTransaction}
+          />
+        </Layout>
+      )}
+    </ErrorBoundary>
   );
 };
 

@@ -200,7 +200,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                                         <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Respuesta de la IA</p>
                                     </div>
                                     <div className="text-slate-800 text-sm leading-relaxed prose prose-sm prose-slate max-w-none font-medium">
-                                        {aiResponse.split('\n').map((line, i) => (
+                                        {(typeof aiResponse === 'string' ? aiResponse : String(aiResponse || '')).split('\n').map((line, i) => (
                                             <p key={i} className="mb-2 last:mb-0">{line}</p>
                                         ))}
                                     </div>
@@ -212,11 +212,11 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Registro Encontrado</p>
-                                            <p className="text-3xl font-black text-indigo-900">{currency}{parsedData.amount.toLocaleString()}</p>
+                                            <p className="text-3xl font-black text-indigo-900">{currency}{(parsedData?.amount || 0).toLocaleString()}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-xs font-bold text-indigo-900 truncate max-w-[120px]">{parsedData.description}</p>
-                                            <p className="text-[10px] font-black text-indigo-400 uppercase">{parsedData.date}</p>
+                                            <p className="text-xs font-bold text-indigo-900 truncate max-w-[120px]">{parsedData?.description || 'Sin descripción'}</p>
+                                            <p className="text-[10px] font-black text-indigo-400 uppercase">{parsedData?.date || ''}</p>
                                         </div>
                                     </div>
                                     <button

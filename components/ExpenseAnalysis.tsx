@@ -353,7 +353,7 @@ const ExpenseAnalysis: React.FC<ExpenseAnalysisProps> = ({ transactions, categor
                   <button onClick={() => setAiInsight(null)} className="text-slate-400 hover:text-rose-500 font-black text-[10px] uppercase">Cerrar</button>
                 </div>
                 <div className="text-base leading-[1.8] prose prose-slate max-w-none max-h-[450px] overflow-y-auto pr-6 custom-scrollbar font-bold text-slate-800">
-                  {aiInsight.split('\n').map((line, i) => (
+                  {(typeof aiInsight === 'string' ? aiInsight : String(aiInsight || '')).split('\n').map((line, i) => (
                     <p key={i} className="mb-4 last:mb-0">{line}</p>
                   ))}
                 </div>

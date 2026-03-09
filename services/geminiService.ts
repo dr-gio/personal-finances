@@ -112,7 +112,9 @@ export const parseVoiceCommand = async (text: string, categories: any[], account
   try {
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const jsonStr = response.text().trim().replace(/```json/g, "").replace(/```/g, "");
+    const text = response.text().trim();
+    const match = text.match(/\{[\s\S]*\}/);
+    const jsonStr = match ? match[0] : text;
     return JSON.parse(jsonStr);
   } catch (error) {
     console.error("Error parsing voice command:", error);
