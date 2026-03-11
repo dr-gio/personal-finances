@@ -173,7 +173,14 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
                       </td>
                       <td className="px-6 py-5">
                         <span className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-                          {acc?.icon} {acc?.name}
+                          <span className="w-6 h-6 flex items-center justify-center overflow-hidden rounded-md">
+                            {acc?.icon.startsWith('http') ? (
+                              <img src={acc?.icon} alt={acc?.name} className="w-full h-full object-contain" />
+                            ) : (
+                              acc?.icon
+                            )}
+                          </span>
+                          {acc?.name}
                         </span>
                       </td>
                       <td className="px-6 py-5">
@@ -312,7 +319,9 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
                   className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold"
                 >
                   {accounts.map(a => (
-                    <option key={a.id} value={a.id}>{a.icon} {a.name} ({currency}{a.balance.toLocaleString()})</option>
+                    <option key={a.id} value={a.id}>
+                      {a.icon.startsWith('http') ? '🏦' : a.icon} {a.name} ({currency}{a.balance.toLocaleString()})
+                    </option>
                   ))}
                 </select>
               </div>
@@ -328,7 +337,9 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, categor
                   >
                     <option value="">Seleccionar destino...</option>
                     {accounts.filter(a => a.id !== formData.accountId).map(a => (
-                      <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
+                      <option key={a.id} value={a.id}>
+                        {a.icon.startsWith('http') ? '🏦' : a.icon} {a.name}
+                      </option>
                     ))}
                   </select>
                 </div>

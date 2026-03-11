@@ -214,7 +214,7 @@ const PaymentCalendar: React.FC<PaymentCalendarProps> = ({ obligations, categori
                   onChange={e => setFormData({ ...formData, accountId: e.target.value })}
                   className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900"
                 >
-                  {accounts.map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
+                  {accounts.map(a => <option key={a.id} value={a.id}>{a.icon.startsWith('http') ? '🏦' : a.icon} {a.name}</option>)}
                 </select>
               </div>
               <div className="space-y-1">

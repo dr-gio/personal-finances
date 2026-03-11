@@ -115,8 +115,12 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, totalIncome, totalExpens
               style={{ borderBottom: `6px solid ${acc.color || '#e2e8f0'}` }}
             >
               <div className="flex items-center justify-between mb-8">
-                <span className="text-2xl w-14 h-14 flex items-center justify-center bg-slate-50 rounded-3xl group-hover:scale-110 transition-transform">
-                  {acc.icon}
+                <span className="text-2xl w-14 h-14 flex items-center justify-center bg-slate-50 rounded-3xl group-hover:scale-110 transition-transform overflow-hidden p-2">
+                  {acc.icon.startsWith('http') ? (
+                    <img src={acc.icon} alt={acc.name} className="w-full h-full object-contain" />
+                  ) : (
+                    acc.icon
+                  )}
                 </span>
                 <span
                   className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full`}

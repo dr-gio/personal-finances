@@ -367,7 +367,9 @@ const DebtManager: React.FC<DebtManagerProps> = ({ debts, accounts, categories, 
                   className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900"
                 >
                   {accounts.map(acc => (
-                    <option key={acc.id} value={acc.id}>{acc.icon} {acc.name} ({currency}{acc.balance.toLocaleString()})</option>
+                    <option key={acc.id} value={acc.id}>
+                      {acc.icon.startsWith('http') ? '🏦' : acc.icon} {acc.name} ({currency}{acc.balance.toLocaleString()})
+                    </option>
                   ))}
                 </select>
               </div>
